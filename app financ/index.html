@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Финансовый трекер</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="language-selector">
+        <select id="languageSelect" class="language-select">
+            <option value="ru">Русский</option>
+            <option value="uk">Українська</option>
+            <option value="en">English</option>
+        </select>
+    </div>
+
+    <div class="container">
+        <h1 id="appTitle">💰 Финансовый Трекер</h1>
+        
+        <div class="view-toggle">
+            <button id="monthViewBtn" class="view-btn active" data-i18n="monthView">По месяцам</button>
+            <button id="quarterViewBtn" class="view-btn" data-i18n="quarterView">По кварталам</button>
+        </div>
+        
+        <div class="month-selector" id="monthSelector">
+            <button id="prevMonthBtn" class="month-nav-btn">←</button>
+            <input 
+                type="month" 
+                id="monthInput" 
+                class="month-input">
+            <button id="nextMonthBtn" class="month-nav-btn">→</button>
+            <button id="todayBtn" class="month-nav-btn today-btn" data-i18n="today">Сегодня</button>
+        </div>
+
+        <div class="quarter-selector" id="quarterSelector" style="display: none;">
+            <button id="prevQuarterBtn" class="month-nav-btn">←</button>
+            <div class="quarter-display">
+                <select id="quarterInput" class="quarter-input">
+                    <option value="2026-Q1">2026 - I квартал</option>
+                    <option value="2026-Q2">2026 - II квартал</option>
+                    <option value="2026-Q3">2026 - III квартал</option>
+                    <option value="2026-Q4">2026 - IV квартал</option>
+                </select>
+            </div>
+            <button id="nextQuarterBtn" class="month-nav-btn">→</button>
+            <button id="todayQuarterBtn" class="month-nav-btn today-btn" data-i18n="today">Сегодня</button>
+        </div>
+        
+        <div class="summary">
+            <div class="summary-item income">
+                <p class="label" data-i18n="income">Доходы</p>
+                <p class="amount" id="totalIncome">0 ₽</p>
+            </div>
+            <div class="summary-item expense">
+                <p class="label" data-i18n="expense">Расходы</p>
+                <p class="amount" id="totalExpense">0 ₽</p>
+            </div>
+            <div class="summary-item balance">
+                <p class="label" data-i18n="balance">Баланс</p>
+                <p class="amount" id="totalBalance">0 ₽</p>
+            </div>
+        </div>
+
+        <div class="input-section">
+            <input 
+                type="text" 
+                id="description" 
+                placeholder="Описание (например: Зарплата или Покупка продуктов)" 
+                class="input-field"
+                data-i18n="descPlaceholder"
+                data-placeholder="true">
+            
+            <input 
+                type="number" 
+                id="amount" 
+                placeholder="Сумма" 
+                class="input-field" 
+                step="0.01"
+                data-i18n="amountPlaceholder"
+                data-placeholder="true">
+            
+            <input 
+                type="date" 
+                id="transactionDate" 
+                class="input-field">
+            
+            <div class="button-group">
+                <button id="incomeBtn" class="btn btn-income" data-i18n="addIncome">➕ Доход</button>
+                <button id="expenseBtn" class="btn btn-expense" data-i18n="addExpense">➖ Расход</button>
+            </div>
+        </div>
+
+        <div class="transactions-section">
+            <h2 data-i18n="history">История транзакций</h2>
+            <div id="transactionsList" class="transactions-list">
+                <p class="empty-message">Нет транзакций. Добавьте доход или расход!</p>
+            </div>
+        </div>
+
+        <button id="clearBtn" class="btn btn-clear" data-i18n="clearAll">🗑️ Очистить всё</button>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>
