@@ -10,6 +10,14 @@ document.addEventListener('DOMContentLoaded', function() {
         container.style.display = 'none';
         languageSelector.style.display = 'none';
         splashScreen.style.display = 'flex';
+        splashLanguage.addEventListener('change', (e) => {
+            currentLanguage = e.target.value;
+            localStorage.setItem('language', currentLanguage);
+            if (languageSelect && languageSelect.value !== currentLanguage) {
+                languageSelect.value = currentLanguage;
+            }
+            updateLanguage();
+        });
         splashContinueBtn.onclick = function() {
             // Сохраняем язык и валюту
             localStorage.setItem('language', splashLanguage.value);
@@ -647,6 +655,11 @@ prevMonthBtn.addEventListener('click', () => {
 languageSelect.addEventListener('change', (e) => {
     currentLanguage = e.target.value;
     localStorage.setItem('language', currentLanguage);
+    // Синхронизируем splashLanguage
+    const splashLanguage = document.getElementById('splashLanguage');
+    if (splashLanguage && splashLanguage.value !== currentLanguage) {
+        splashLanguage.value = currentLanguage;
+    }
     updateLanguage();
 });
 
@@ -657,14 +670,23 @@ function updateLanguage() {
         const key = el.getAttribute('data-i18n');
         if (el.hasAttribute('data-placeholder')) {
             el.placeholder = t(key);
-        } else if (el.tagName === 'INPUT' && el.type === 'text') {
+        } else if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'number')) {
             el.placeholder = t(key);
+        } else if (el.tagName === 'BUTTON') {
+            el.innerHTML = t(key);
         } else {
             el.textContent = t(key);
         }
     });
 
-    // Нет элементов квартала, не обновляем опции
+    // Обновляем заголовок страницы
+    document.title = t('appTitle');
+    const appTitleEl = document.getElementById('appTitle');
+    if (appTitleEl) appTitleEl.textContent = t('appTitle');
+
+    // Splash screen
+    const splashTitle = document.querySelector('.splash-title');
+    if (splashTitle) splashTitle.textContent = t('appTitle');
 
     // Обновляем UI
     updateUI();
