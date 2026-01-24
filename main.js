@@ -185,8 +185,72 @@ function initializeSwipeNavigation() {
 }
 
 function initializeInstallButton() {
-    // PWA install button is already handled in DOMContentLoaded
-    console.log('Install button initialized');
+    const installButton = document.getElementById('installAppBtn');
+    const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+    const isInStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+    console.log('Install button found:', !!installButton);
+    console.log('Is iOS:', isIos);
+    console.log('Is standalone:', isInStandalone);
+    console.log('Deferred prompt available:', !!deferredInstallPrompt);
+
+    if (installButton) {
+        installButton.addEventListener('click', async () => {
+            console.log('Install button clicked');
+            if (deferredInstallPrompt) {
+                console.log('Showing install prompt');
+                deferredInstallPrompt.prompt();
+                const choiceResult = await deferredInstallPrompt.userChoice;
+                if (choiceResult.outcome === 'accepted') {
+                    installButton.classList.remove('is-visible');
+                }
+                deferredInstallPrompt = null;
+            } else if (isIos && !isInStandalone) {
+                console.log('Showing iOS instructions');
+                showIosInstallInstructions();
+            } else {
+                console.log('No install prompt available, showing manual instructions');
+                alert('Установка недоступна. Попробуйте открыть в браузере Chrome на Android или следуйте инструкциям для iPhone.');
+            }
+        });
+
+        if (isIos && !isInStandalone) {
+            installButton.classList.add('is-visible');
+        }
+    }
+}
+
+function showIosInstallInstructions() {
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.innerHTML = `
+        <div class="modal-backdrop"></div>
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>📱 Установка на iPhone</h2>
+                <button class="modal-close" onclick="this.closest('.modal').remove()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 3rem; margin-bottom: 20px;">📱</div>
+                    <h3 style="color: var(--primary); margin-bottom: 20px;">Как установить приложение:</h3>
+                    <div style="text-align: left; background: var(--light-gray); padding: 15px; border-radius: 8px;">
+                        <p style="margin-bottom: 10px;"><strong>1.</strong> Нажмите кнопку <strong>"Поделиться"</strong> 📤 внизу экрана</p>
+                        <p style="margin-bottom: 10px;"><strong>2.</strong> Прокрутите и нажмите <strong>"На экран 'Домой'"</strong> ➕</p>
+                        <p style="margin-bottom: 10px;"><strong>3.</strong> Нажмите <strong>"Добавить"</strong> для подтверждения</p>
+                    </div>
+                    <p style="color: var(--gray); font-size: 0.9rem; margin-top: 20px;">
+                        Приложение появится на вашем домашнем экране!
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Понятно</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
 }
 
 // --- SPLASH SCREEN LOGIC ---
@@ -272,29 +336,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Если splash screen не найден, просто показываем приложение
         updateLanguage();
         initializeApp();
-    }
-
-    const installButton = document.getElementById('installAppBtn');
-    const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
-    const isInStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-
-    if (installButton) {
-        installButton.addEventListener('click', async () => {
-            if (deferredInstallPrompt) {
-                deferredInstallPrompt.prompt();
-                const choiceResult = await deferredInstallPrompt.userChoice;
-                if (choiceResult.outcome === 'accepted') {
-                    installButton.classList.remove('is-visible');
-                }
-                deferredInstallPrompt = null;
-            } else if (isIos && !isInStandalone) {
-                alert('На iPhone: нажмите «Поделиться» и выберите «На экран Домой».');
-            }
-        });
-
-        if (isIos && !isInStandalone) {
-            installButton.classList.add('is-visible');
-        }
     }
 
     if ('serviceWorker' in navigator) {
