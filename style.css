@@ -665,57 +665,142 @@ body {
   display: inline-flex;
 }
 
+/* Enhanced Update Banner */
 .update-banner {
   position: fixed;
-  left: 16px;
-  right: 16px;
-  bottom: 16px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 2px solid var(--outline);
-  border-radius: var(--radius-lg);
-  padding: 10px 14px;
-  box-shadow: var(--shadow-lg);
-  display: none;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+  color: white;
+  padding: 16px;
+  z-index: 10000;
+  transform: translateY(-100%);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border-bottom: 2px solid #15803d;
+}
+
+.update-banner.show {
+  transform: translateY(0);
+}
+
+.update-banner-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  z-index: 9999;
-  font-weight: 500;
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
+  gap: 16px;
 }
 
-.update-banner.is-visible {
+.update-icon {
+  font-size: 24px;
+  animation: rotate 2s linear infinite;
+}
+
+.update-icon.loading {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.update-text {
+  flex: 1;
+}
+
+.update-text strong {
+  font-size: 16px;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.update-subtitle {
+  font-size: 14px;
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+.update-buttons {
   display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
-.update-banner .btn {
-  padding: 6px 12px;
-  font-size: 0.85rem;
+.update-buttons .btn {
+  padding: 8px 16px;
+  font-size: 14px;
   min-height: auto;
-  width: auto;
+  margin: 0;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.update-buttons .btn-secondary {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.update-buttons .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.update-buttons .btn-success {
+  background: white;
+  color: #16a34a;
+  border-color: white;
+}
+
+.update-buttons .btn-success:hover {
+  background: #f0fdf4;
+  transform: translateY(-1px);
+}
+
+/* Mobile responsive for update banner */
+@media (max-width: 640px) {
+  .update-banner-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .update-text strong {
+    font-size: 15px;
+  }
+  
+  .update-subtitle {
+    font-size: 13px;
+  }
+  
+  .update-buttons {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .update-buttons .btn {
+    flex: 1;
+    min-width: 100px;
+  }
+}
+
+/* Adjust body padding when update banner is shown */
+body.has-update-banner {
+  padding-top: 80px;
 }
 
 @media (max-width: 640px) {
-  .header-top {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .header-right {
-    width: 100%;
-  }
-
-  .install-btn {
-    width: 100%;
-  }
-
-  .update-banner {
-    flex-direction: column;
-    align-items: stretch;
+  body.has-update-banner {
+    padding-top: 120px;
   }
 }
 

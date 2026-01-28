@@ -685,71 +685,143 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeApp();
     }
 
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./service-worker.js').then((registration) => {
-            if (registration.waiting) {
-                showUpdateBanner(registration);
-            }
+    // --- ENHANCED SERVICE WORKER UPDATE SYSTEM ---
+    let refreshing = false;
+    let currentAppVersion = '2.0.0';
 
-            registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                if (!newWorker) return;
-
-                newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        showUpdateBanner(registration);
+    // Проверка обновлений при загрузке
+    function checkForUpdates() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./service-worker.js').then((registration) => {
+                console.log('[SW] Service Worker registered');
+                
+                // Проверяем наличие обновлений каждые 30 секунд
+                setInterval(() => {
+                    registration.update();
+                }, 30000);
+                
+                // Проверяем обновления при возвращении на страницу
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden) {
+                        registration.update();
                     }
                 });
-            });
-        });
-
-        const tryUpdate = () => {
-            navigator.serviceWorker.getRegistration().then((registration) => {
-                if (registration) {
-                    registration.update();
+                
+                // Обработка найденных обновлений
+                if (registration.waiting) {
+                    showUpdateBanner(registration);
                 }
+                
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    if (!newWorker) return;
+                    
+                    console.log('[SW] New service worker found');
+                    
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            console.log('[SW] New version available');
+                            showUpdateBanner(registration);
+                        }
+                    });
+                });
+            }).catch(error => {
+                console.error('[SW] Service Worker registration failed:', error);
             });
-        };
-
-        setInterval(tryUpdate, 30 * 60 * 1000);
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                tryUpdate();
-            }
-        });
-
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (refreshing) return;
-            refreshing = true;
-            window.location.reload();
-        });
+            
+            // Обработка перезагрузки при обновлении
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                console.log('[SW] Controller changed - reloading page');
+                refreshing = true;
+                window.location.reload();
+            });
+        }
     }
-});
 
-function showUpdateBanner(registration) {
-    let banner = document.getElementById('updateBanner');
-    if (!banner) {
-        banner = document.createElement('div');
+    // Показ баннера обновления
+    function showUpdateBanner(registration) {
+        // Удаляем старый баннер если есть
+        const existingBanner = document.getElementById('updateBanner');
+        if (existingBanner) {
+            existingBanner.remove();
+        }
+        
+        const banner = document.createElement('div');
         banner.id = 'updateBanner';
         banner.className = 'update-banner';
         banner.innerHTML = `
-            <span>Доступна новая версия приложения.</span>
-            <button class="btn btn-success" id="updateBannerBtn">Обновить</button>
+            <div class="update-banner-content">
+                <div class="update-icon">🔄</div>
+                <div class="update-text">
+                    <strong>Доступна новая версия!</strong>
+                    <div class="update-subtitle">Обновите для получения последних функций</div>
+                </div>
+                <div class="update-buttons">
+                    <button class="btn btn-secondary" onclick="dismissUpdateBanner()">Позже</button>
+                    <button class="btn btn-success" onclick="applyUpdate(registration)">Обновить</button>
+                </div>
+            </div>
         `;
+        
         document.body.appendChild(banner);
+        
+        // Анимация появления
+        setTimeout(() => {
+            banner.classList.add('show');
+        }, 100);
     }
 
-    const button = banner.querySelector('#updateBannerBtn');
-    if (button) {
-        button.onclick = () => {
-            if (registration.waiting) {
-                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    // Применить обновление
+    function applyUpdate(registration) {
+        if (registration.waiting) {
+            console.log('[SW] Applying update');
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            
+            // Показываем индикатор загрузки
+            const banner = document.getElementById('updateBanner');
+            if (banner) {
+                banner.innerHTML = `
+                    <div class="update-banner-content">
+                        <div class="update-icon loading">⏳</div>
+                        <div class="update-text">
+                            <strong>Обновление...</strong>
+                            <div class="update-subtitle">Пожалуйста, подождите</div>
+                        </div>
+                    </div>
+                `;
             }
-        };
+        }
     }
 
-    banner.classList.add('is-visible');
-}
+    // Отклонить обновление
+    function dismissUpdateBanner() {
+        const banner = document.getElementById('updateBanner');
+        if (banner) {
+            banner.classList.remove('show');
+            setTimeout(() => {
+                banner.remove();
+            }, 300);
+        }
+    }
+
+    // Принудительное обновление (для отладки)
+    function forceUpdate() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistration().then((registration) => {
+                if (registration) {
+                    registration.active.postMessage({ type: 'FORCE_UPDATE' });
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                }
+            });
+        }
+    }
+
+    // Запускаем проверку обновлений
+    checkForUpdates();
+});
 
 window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
