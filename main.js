@@ -338,6 +338,9 @@ function initializeApp() {
     // Initialize enhanced swipe transitions
     enhanceSwipeTransitions();
     
+    // Initialize cache status monitoring
+    initializeCacheStatus();
+    
     // Initialize PWA install button
     initializeInstallButton();
     
@@ -833,7 +836,207 @@ window.addEventListener('beforeinstallprompt', (event) => {
     }
 });
 
-// Восстановить историю из localStorage
+// --- CACHE MANAGEMENT FUNCTIONS ---
+
+// Показать модальное окно предупреждения об очистке кэша
+function showClearCacheWarning() {
+    const modal = document.getElementById('clearCacheModal');
+    if (modal) {
+        modal.classList.add('active');
+        
+        // Сбрасываем чекбокс
+        const checkbox = document.getElementById('confirmCacheClear');
+        const confirmBtn = document.getElementById('confirmClearCacheBtn');
+        if (checkbox) checkbox.checked = false;
+        if (confirmBtn) confirmBtn.disabled = true;
+        
+        // Добавляем обработчик для чекбокса
+        if (checkbox) {
+            checkbox.onchange = function() {
+                if (confirmBtn) {
+                    confirmBtn.disabled = !this.checked;
+                }
+            };
+        }
+    }
+}
+
+// Закрыть модальное окно очистки кэша
+function closeClearCacheModal() {
+    const modal = document.getElementById('clearCacheModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+// Подтвердить очистку кэша
+function confirmClearCache() {
+    const checkbox = document.getElementById('confirmCacheClear');
+    if (!checkbox || !checkbox.checked) {
+        return;
+    }
+    
+    // Показываем индикатор загрузки
+    const confirmBtn = document.getElementById('confirmClearCacheBtn');
+    if (confirmBtn) {
+        confirmBtn.textContent = 'Очистка...';
+        confirmBtn.disabled = true;
+    }
+    
+    // Выполняем очистку кэша
+    clearAllCache().then(() => {
+        // Закрываем модальное окно
+        closeClearCacheModal();
+        
+        // Показываем сообщение об успехе
+        showSuccessMessage('Кэш успешно очищен! Приложение будет перезагружено...');
+        
+        // Перезагружаем страницу через 2 секунды
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+    }).catch(error => {
+        console.error('Error clearing cache:', error);
+        showValidationError('Ошибка при очистке кэша. Попробуйте снова.');
+        
+        // Восстанавливаем кнопку
+        if (confirmBtn) {
+            confirmBtn.textContent = 'Очистить кэш';
+            confirmBtn.disabled = false;
+        }
+    });
+}
+
+// Полная очистка кэша
+async function clearAllCache() {
+    try {
+        // 1. Очищаем localStorage
+        localStorage.clear();
+        
+        // 2. Очищаем sessionStorage
+        sessionStorage.clear();
+        
+        // 3. Очищаем Service Worker кэши (только для http/https)
+        if ('caches' in window && window.location.protocol !== 'file:') {
+            const cacheNames = await caches.keys();
+            await Promise.all(
+                cacheNames.map(cacheName => caches.delete(cacheName))
+            );
+        }
+        
+        // 4. Обновляем Service Worker (только для http/https)
+        if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
+            try {
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                    await registration.unregister();
+                }
+            } catch (swError) {
+                console.warn('Service Worker unregister failed (expected for file://):', swError);
+            }
+        }
+        
+        // 5. Очищаем IndexedDB если есть
+        if ('indexedDB' in window) {
+            try {
+                const databases = await indexedDB.databases();
+                await Promise.all(
+                    databases.map(database => indexedDB.deleteDatabase(database.name))
+                );
+            } catch (idbError) {
+                console.warn('IndexedDB cleanup failed:', idbError);
+            }
+        }
+        
+        console.log('All cache cleared successfully');
+        
+    } catch (error) {
+        console.error('Error clearing cache:', error);
+        throw error;
+    }
+}
+
+// Проверить статус кэша
+async function checkCacheStatus() {
+    const statusElement = document.getElementById('cacheStatus');
+    const sizeElement = document.getElementById('cacheSize');
+    
+    if (statusElement) statusElement.textContent = 'Проверка...';
+    if (sizeElement) sizeElement.textContent = 'Расчет...';
+    
+    try {
+        let totalSize = 0;
+        let cacheCount = 0;
+        
+        // Проверяем localStorage
+        for (let key in localStorage) {
+            if (localStorage.hasOwnProperty(key)) {
+                totalSize += localStorage[key].length + key.length;
+                cacheCount++;
+            }
+        }
+        
+        // Проверяем sessionStorage
+        for (let key in sessionStorage) {
+            if (sessionStorage.hasOwnProperty(key)) {
+                totalSize += sessionStorage[key].length + key.length;
+                cacheCount++;
+            }
+        }
+        
+        // Проверяем Service Worker кэши (только для http/https)
+        if ('caches' in window && window.location.protocol !== 'file:') {
+            try {
+                const cacheNames = await caches.keys();
+                for (const cacheName of cacheNames) {
+                    const cache = await caches.open(cacheName);
+                    const requests = await cache.keys();
+                    for (const request of requests) {
+                        const response = await cache.match(request);
+                        if (response) {
+                            const responseClone = response.clone();
+                            const blob = await responseClone.blob();
+                            totalSize += blob.size;
+                            cacheCount++;
+                        }
+                    }
+                }
+            } catch (cacheError) {
+                console.warn('Cache check failed (expected for file://):', cacheError);
+            }
+        }
+        
+        // Обновляем отображение
+        if (statusElement) {
+            statusElement.textContent = `${cacheCount} элементов`;
+            statusElement.style.color = cacheCount > 0 ? 'var(--primary)' : 'var(--gray)';
+        }
+        
+        if (sizeElement) {
+            const sizeInMB = (totalSize / (1024 * 1024)).toFixed(2);
+            sizeElement.textContent = `${sizeInMB} МБ`;
+            sizeElement.style.color = totalSize > 1024 * 1024 ? '#ef4444' : 'var(--primary)';
+        }
+        
+    } catch (error) {
+        console.error('Error checking cache status:', error);
+        if (statusElement) statusElement.textContent = 'Ошибка';
+        if (sizeElement) sizeElement.textContent = 'Н/Д';
+    }
+}
+
+// Автоматическая проверка статуса кэша при открытии настроек
+function initializeCacheStatus() {
+    // Проверяем статус при загрузке страницы
+    setTimeout(() => {
+        checkCacheStatus();
+    }, 1000);
+    
+    // Обновляем статус каждые 30 секунд
+    setInterval(() => {
+        checkCacheStatus();
+    }, 30000);
+}
 function restoreHistory() {
     const storedTransactions = localStorage.getItem('transactions');
     const storedAssets = localStorage.getItem('assets');

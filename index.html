@@ -410,6 +410,27 @@
                     </div>
                 </div>
                 <div class="settings-section">
+                    <h3>🗑️ Управление кэшем</h3>
+                    <p>Очистка кэша приложения для освобождения места</p>
+                    <div class="cache-info" id="cacheInfo">
+                        <div class="cache-status">
+                            <span class="cache-label">Статус кэша:</span>
+                            <span class="cache-value" id="cacheStatus">Проверка...</span>
+                        </div>
+                        <div class="cache-size">
+                            <span class="cache-label">Размер кэша:</span>
+                            <span class="cache-value" id="cacheSize">0 МБ</span>
+                        </div>
+                    </div>
+                    <div class="settings-buttons-group">
+                        <button class="btn btn-danger" onclick="showClearCacheWarning()">🗑️ Очистить кэш</button>
+                        <button class="btn btn-secondary" onclick="checkCacheStatus()">🔄 Обновить статус</button>
+                    </div>
+                    <div class="settings-info">
+                        <small>⚠️ Очистка кэша удалит все сохраненные данные приложения!</small>
+                    </div>
+                </div>
+                <div class="settings-section">
                     <h3>☁️ Синхронизация</h3>
                     <p>Синхронизация данных с Google Drive временно отключена.</p>
                 </div>
@@ -436,6 +457,57 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeSettingsModal()">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ОЧИСТКА КЭША - Cache Clear Warning Modal -->
+    <div class="modal" id="clearCacheModal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚠️ Очистка кэша</h2>
+                <button class="modal-close" onclick="closeClearCacheModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="warning-content">
+                    <div class="warning-icon">⚠️</div>
+                    <div class="warning-text">
+                        <h3>Внимание!</h3>
+                        <p>Вы собираетесь очистить кэш приложения. Это действие приведет к следующим последствиям:</p>
+                        
+                        <div class="warning-list">
+                            <div class="warning-item">
+                                <span class="warning-icon-small">🗑️</span>
+                                <span><strong>Удаление всех данных:</strong> все ваши транзакции, активы и пассивы будут удалены</span>
+                            </div>
+                            <div class="warning-item">
+                                <span class="warning-icon-small">🔄</span>
+                                <span><strong>Сброс настроек:</strong> язык, валюта и другие настройки вернутся к значениям по умолчанию</span>
+                            </div>
+                            <div class="warning-item">
+                                <span class="warning-icon-small">📱</span>
+                                <span><strong>Очистка офлайн-данных:</strong> приложение будет работать только с интернетом</span>
+                            </div>
+                            <div class="warning-item">
+                                <span class="warning-icon-small">⚡</span>
+                                <span><strong>Удаление резервных копий:</strong> все автоматические бэкапы будут удалены</span>
+                            </div>
+                        </div>
+                        
+                        <div class="warning-confirmation">
+                            <label class="confirmation-checkbox">
+                                <input type="checkbox" id="confirmCacheClear">
+                                <span class="checkmark"></span>
+                                Я понимаю последствия и хочу продолжить
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeClearCacheModal()">Отмена</button>
+                <button class="btn btn-danger" id="confirmClearCacheBtn" onclick="confirmClearCache()" disabled>Очистить кэш</button>
             </div>
         </div>
     </div>
