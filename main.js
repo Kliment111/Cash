@@ -11,8 +11,10 @@ let swipeStartTab = '';
 function switchToTab(tabName) {
     currentTab = tabName;
     updateDiaPanel();
-    updateDiaTabs();
     updateIndicators();
+    
+    // Add swipe animation effect
+    addSwipeAnimation();
     
     // Scroll to top of dia container
     const diaContainer = document.querySelector('.dia-container');
@@ -26,6 +28,8 @@ function updateDiaPanel() {
     panels.forEach(panel => {
         if (panel.dataset.panel === currentTab) {
             panel.classList.add('active');
+            // Add animation class
+            panel.style.animation = 'slideInFromRight 0.3s ease-out';
         } else {
             panel.classList.remove('active');
         }
@@ -33,14 +37,8 @@ function updateDiaPanel() {
 }
 
 function updateDiaTabs() {
-    const tabs = document.querySelectorAll('.dia-tab');
-    tabs.forEach(tab => {
-        if (tab.dataset.tab === currentTab) {
-            tab.classList.add('active');
-        } else {
-            tab.classList.remove('active');
-        }
-    });
+    // Function removed since tabs are no longer visible
+    // Keeping for backward compatibility
 }
 
 function updateIndicators() {
@@ -59,6 +57,14 @@ function handleTouchStart(e) {
     touchStartX = e.changedTouches[0].screenX;
     swipeStartTab = currentTab;
     isSwiping = false;
+    
+    // Check if touch is on a button
+    const touchTarget = e.target;
+    if (touchTarget.tagName === 'BUTTON' || touchTarget.closest('button')) {
+        // Don't prevent default for buttons
+        return;
+    }
+    
     e.preventDefault();
     
     // Add swiping class to prevent scrolling
@@ -70,6 +76,13 @@ function handleTouchStart(e) {
 
 function handleTouchMove(e) {
     if (!touchStartX) return;
+    
+    // Check if touch is on a button
+    const touchTarget = e.target;
+    if (touchTarget.tagName === 'BUTTON' || touchTarget.closest('button')) {
+        // Don't handle swipe on buttons
+        return;
+    }
     
     const touchEndX = e.changedTouches[0].screenX;
     const diff = touchStartX - touchEndX;
@@ -86,7 +99,23 @@ function handleTouchMove(e) {
 }
 
 function handleTouchEnd(e) {
-    if (!touchStartX || !isSwiping) return;
+    if (!touchStartX) return;
+    
+    // Check if touch is on a button
+    const touchTarget = e.target;
+    if (touchTarget.tagName === 'BUTTON' || touchTarget.closest('button')) {
+        // Reset swipe state but don't handle swipe
+        touchStartX = 0;
+        touchEndX = 0;
+        isSwiping = false;
+        return;
+    }
+    
+    if (!isSwiping) {
+        touchStartX = 0;
+        touchEndX = 0;
+        return;
+    }
     
     touchEndX = e.changedTouches[0].screenX;
     handleSwipeGesture();
@@ -113,14 +142,160 @@ function handleSwipeGesture() {
         if (diff > 0 && currentIndex < tabs.length - 1) {
             // Swipe left - next tab
             switchToTab(tabs[currentIndex + 1]);
+            showSwipeHint('←', 'Свайп влево');
         } else if (diff < 0 && currentIndex > 0) {
             // Swipe right - previous tab
             switchToTab(tabs[currentIndex - 1]);
+            showSwipeHint('→', 'Свайп вправо');
         }
     }
 }
 
+// Add smooth transition enhancement
+function enhanceSwipeTransitions() {
+    const diaContainer = document.querySelector('.dia-container');
+    const panels = document.querySelectorAll('.dia-panel');
+    
+    // Add smooth transitions to panels
+    panels.forEach(panel => {
+        panel.style.transition = 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    });
+    
+    // Add momentum-based scrolling
+    if (diaContainer) {
+        let isScrolling = false;
+        let scrollStartY = 0;
+        let scrollEndY = 0;
+        
+        diaContainer.addEventListener('touchstart', function(e) {
+            scrollStartY = e.touches[0].clientY;
+            isScrolling = false;
+        }, { passive: true });
+        
+        diaContainer.addEventListener('touchmove', function(e) {
+            scrollEndY = e.touches[0].clientY;
+            const scrollDiff = Math.abs(scrollStartY - scrollEndY);
+            
+            if (scrollDiff > 10) {
+                isScrolling = true;
+            }
+        }, { passive: true });
+        
+        diaContainer.addEventListener('touchend', function() {
+            if (isScrolling) {
+                // Add momentum scrolling effect
+                const scrollDiff = scrollStartY - scrollEndY;
+                if (Math.abs(scrollDiff) > 50) {
+                    diaContainer.scrollTop += scrollDiff * 0.5;
+                }
+            }
+        }, { passive: true });
+    }
+}
+
 // Touch events initialization moved to initializeDiaNavigation()
+
+// --- SWIPE VISUAL FEEDBACK ---
+function addSwipeAnimation() {
+    const diaContainer = document.querySelector('.dia-container');
+    if (diaContainer) {
+        diaContainer.style.transform = 'scale(0.98)';
+        setTimeout(() => {
+            diaContainer.style.transform = 'scale(1)';
+        }, 200);
+    }
+}
+
+function showSwipeHint(arrow, text) {
+    // Remove existing hint if any
+    const existingHint = document.querySelector('.swipe-hint');
+    if (existingHint) {
+        existingHint.remove();
+    }
+    
+    // Create swipe hint element
+    const hint = document.createElement('div');
+    hint.className = 'swipe-hint';
+    hint.innerHTML = `
+        <div class="swipe-hint-arrow">${arrow}</div>
+        <div class="swipe-hint-text">${text}</div>
+    `;
+    
+    // Style the hint
+    hint.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px 30px;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: 600;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        animation: swipeHintFade 1.5s ease-out forwards;
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 215, 0, 0.3);
+    `;
+    
+    document.body.appendChild(hint);
+    
+    // Auto remove after animation
+    setTimeout(() => {
+        if (hint.parentNode) {
+            hint.remove();
+        }
+    }, 1500);
+}
+
+// Add CSS animation for swipe hint
+const swipeHintStyle = document.createElement('style');
+swipeHintStyle.textContent = `
+    @keyframes swipeHintFade {
+        0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.8);
+        }
+        20% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+        40% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        100% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.9);
+        }
+    }
+    
+    @keyframes slideInFromRight {
+        0% {
+            opacity: 0;
+            transform: translateX(30px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    .swipe-hint-arrow {
+        font-size: 24px;
+        color: #FFD700;
+    }
+    
+    .swipe-hint-text {
+        font-size: 16px;
+        color: white;
+    }
+`;
+document.head.appendChild(swipeHintStyle);
 
 // --- LEGACY SWIPE NAVIGATION (for backward compatibility) ---
 let currentSwipePanel = 0; // 0 = transactions, 1 = assets/liabilities
@@ -159,6 +334,9 @@ function initializeApp() {
     
     // Initialize DІЯ navigation (replaces old swipe navigation)
     initializeDiaNavigation();
+    
+    // Initialize enhanced swipe transitions
+    enhanceSwipeTransitions();
     
     // Initialize PWA install button
     initializeInstallButton();
