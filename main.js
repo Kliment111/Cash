@@ -59,6 +59,13 @@ function handleTouchStart(e) {
     touchStartX = e.changedTouches[0].screenX;
     swipeStartTab = currentTab;
     isSwiping = false;
+    e.preventDefault();
+    
+    // Add swiping class to prevent scrolling
+    const diaContainer = document.querySelector('.dia-container');
+    if (diaContainer) {
+        diaContainer.classList.add('swiping');
+    }
 }
 
 function handleTouchMove(e) {
@@ -71,6 +78,11 @@ function handleTouchMove(e) {
     if (Math.abs(diff) > 10) {
         isSwiping = true;
     }
+    
+    // Prevent default scrolling when swiping
+    if (isSwiping) {
+        e.preventDefault();
+    }
 }
 
 function handleTouchEnd(e) {
@@ -82,6 +94,13 @@ function handleTouchEnd(e) {
     touchStartX = 0;
     touchEndX = 0;
     isSwiping = false;
+    e.preventDefault();
+    
+    // Remove swiping class to restore scrolling
+    const diaContainer = document.querySelector('.dia-container');
+    if (diaContainer) {
+        diaContainer.classList.remove('swiping');
+    }
 }
 
 function handleSwipeGesture() {
@@ -411,9 +430,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const diaContainer = document.querySelector('.dia-container');
     
     if (diaContainer) {
-        diaContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
-        diaContainer.addEventListener('touchmove', handleTouchMove, { passive: true });
-        diaContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
+        diaContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
+        diaContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+        diaContainer.addEventListener('touchend', handleTouchEnd, { passive: false });
         
         // Initialize DIA navigation
         initializeDiaNavigation();

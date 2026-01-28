@@ -833,11 +833,16 @@ h1, h2, h3, h4, h5, h6 {
   width: 100%;
   background: var(--white);
   border: var(--border);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   overflow: hidden;
+  touch-action: pan-y; /* Allow vertical scrolling but prevent horizontal */
   transition: all 0.2s ease;
   transform-style: preserve-3d;
-  border-radius: var(--radius-lg);
+}
+
+.dia-container.swiping {
+  touch-action: none; /* Prevent all touch actions during swipe */
 }
 
 .dia-container:hover {
