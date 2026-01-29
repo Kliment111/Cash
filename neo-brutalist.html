@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 FINANCE TRACKER</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #FF006E;
+            --secondary: #FB5607;
+            --accent: #FFBE0B;
+            --success: #8338EC;
+            --dark: #3A0CA3;
+            --black: #000000;
+            --white: #FFFFFF;
+            --gray: #F5F5F5;
+            --border: 4px solid #000;
+            --shadow: 8px 8px 0px #000;
+            --shadow-sm: 4px 4px 0px #000;
+        }
+
+        body {
+            font-family: 'Arial Black', sans-serif;
+            background: linear-gradient(45deg, #FFBE0B, #FB5607, #FF006E, #8338EC, #3A0CA3);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            padding: 20px;
+            font-weight: 900;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* Главный баланс */
+        .balance-card {
+            background: var(--white);
+            border: var(--border);
+            box-shadow: var(--shadow);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            transform: rotate(-1deg);
+            transition: all 0.2s;
+        }
+
+        .balance-card:hover {
+            transform: rotate(0deg) scale(1.02);
+        }
+
+        .balance-title {
+            font-size: 18px;
+            color: var(--black);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .balance-amount {
+            font-size: 48px;
+            color: var(--primary);
+            text-shadow: 3px 3px 0px rgba(0,0,0,0.1);
+        }
+
+        .balance-amount.positive {
+            color: var(--success);
+        }
+
+        .balance-amount.negative {
+            color: var(--secondary);
+        }
+
+        /* Быстрые действия */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .quick-btn {
+            background: var(--white);
+            border: var(--border);
+            box-shadow: var(--shadow);
+            border-radius: 15px;
+            padding: 25px 15px;
+            font-size: 16px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quick-btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 10px 10px 0px #000;
+        }
+
+        .quick-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .quick-btn.income {
+            background: var(--success);
+            color: var(--white);
+        }
+
+        .quick-btn.expense {
+            background: var(--secondary);
+            color: var(--white);
+        }
+
+        .quick-btn.asset {
+            background: var(--accent);
+            color: var(--black);
+        }
+
+        .quick-btn.liability {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        .btn-icon {
+            font-size: 32px;
+        }
+
+        /* Секции */
+        .sections {
+            display: grid;
+            gap: 20px;
+        }
+
+        .section {
+            background: var(--white);
+            border: var(--border);
+            box-shadow: var(--shadow);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .section:hover {
+            transform: rotate(1deg) scale(1.01);
+        }
+
+        .section-header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-amount {
+            font-size: 18px;
+            font-weight: 900;
+            padding: 8px 15px;
+            border-radius: 10px;
+            background: var(--gray);
+        }
+
+        .section-toggle {
+            font-size: 24px;
+            transition: transform 0.2s;
+        }
+
+        .section.expanded .section-toggle {
+            transform: rotate(180deg);
+        }
+
+        .section-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s;
+        }
+
+        .section.expanded .section-content {
+            max-height: 500px;
+        }
+
+        .section-items {
+            padding: 0 20px 20px;
+        }
+
+        .item {
+            background: var(--gray);
+            border: 2px solid #000;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.1s;
+        }
+
+        .item:hover {
+            transform: translateX(-2px);
+            box-shadow: 4px 4px 0px #000;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-size: 16px;
+            font-weight: 900;
+            margin-bottom: 5px;
+        }
+
+        .item-details {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .item-amount {
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 5px;
+            margin-left: 10px;
+        }
+
+        .item-btn {
+            background: var(--white);
+            border: 2px solid #000;
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 900;
+            transition: all 0.1s;
+        }
+
+        .item-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .add-btn {
+            background: var(--dark);
+            color: var(--white);
+            border: var(--border);
+            box-shadow: var(--shadow);
+            border-radius: 15px;
+            padding: 15px 20px;
+            font-size: 14px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .add-btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 10px 10px 0px #000;
+        }
+
+        /* Модальное окно */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--white);
+            border: var(--border);
+            box-shadow: var(--shadow);
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            transform: rotate(-1deg);
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 900;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            border: var(--border);
+            background: var(--gray);
+            font-size: 16px;
+            font-weight: 900;
+            border-radius: 10px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            background: var(--white);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 15px;
+            border: var(--border);
+            font-size: 14px;
+            font-weight: 900;
+            cursor: pointer;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.1s;
+        }
+
+        .modal-btn.cancel {
+            background: var(--gray);
+        }
+
+        .modal-btn.confirm {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        .modal-btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0px #000;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+        /* Мобильная адаптация */
+        @media (max-width: 480px) {
+            body {
+                padding: 15px;
+            }
+
+            .balance-amount {
+                font-size: 36px;
+            }
+
+            .quick-actions {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            .quick-btn {
+                padding: 20px 10px;
+                font-size: 14px;
+            }
+
+            .btn-icon {
+                font-size: 24px;
+            }
+
+            .section-header {
+                padding: 15px;
+            }
+
+            .section-title {
+                font-size: 16px;
+            }
+
+            .section-amount {
+                font-size: 14px;
+                padding: 5px 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Главный баланс -->
+        <div class="balance-card">
+            <div class="balance-title">💰 ОБЩИЙ БАЛАНС</div>
+            <div class="balance-amount" id="totalBalance">0 $</div>
+        </div>
+
+        <!-- Быстрые действия -->
+        <div class="quick-actions">
+            <button class="quick-btn income" onclick="quickAdd('income')">
+                <span class="btn-icon">💰</span>
+                <span>Доход</span>
+            </button>
+            <button class="quick-btn expense" onclick="quickAdd('expense')">
+                <span class="btn-icon">💸</span>
+                <span>Расход</span>
+            </button>
+            <button class="quick-btn asset" onclick="quickAdd('asset')">
+                <span class="btn-icon">💳</span>
+                <span>Актив</span>
+            </button>
+            <button class="quick-btn liability" onclick="quickAdd('liability')">
+                <span class="btn-icon">📊</span>
+                <span>Пассив</span>
+            </button>
+        </div>
+
+        <!-- Секции -->
+        <div class="sections">
+            <!-- Доходы -->
+            <div class="section" id="incomeSection">
+                <div class="section-header" onclick="toggleSection('income')">
+                    <div class="section-title">
+                        <span>💰</span>
+                        <span>ДОХОДЫ</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="section-amount" id="incomeTotal">0 $</div>
+                        <div class="section-toggle">▼</div>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-items" id="incomeItems">
+                        <div class="empty-state">Нет доходов</div>
+                    </div>
+                    <button class="add-btn" onclick="openModal('income')">+ Добавить доход</button>
+                </div>
+            </div>
+
+            <!-- Расходы -->
+            <div class="section" id="expenseSection">
+                <div class="section-header" onclick="toggleSection('expense')">
+                    <div class="section-title">
+                        <span>💸</span>
+                        <span>РАСХОДЫ</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="section-amount" id="expenseTotal">0 $</div>
+                        <div class="section-toggle">▼</div>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-items" id="expenseItems">
+                        <div class="empty-state">Нет расходов</div>
+                    </div>
+                    <button class="add-btn" onclick="openModal('expense')">+ Добавить расход</button>
+                </div>
+            </div>
+
+            <!-- Активы -->
+            <div class="section" id="assetSection">
+                <div class="section-header" onclick="toggleSection('asset')">
+                    <div class="section-title">
+                        <span>💳</span>
+                        <span>АКТИВЫ</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="section-amount" id="assetTotal">0 $</div>
+                        <div class="section-toggle">▼</div>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-items" id="assetItems">
+                        <div class="empty-state">Нет активов</div>
+                    </div>
+                    <button class="add-btn" onclick="openModal('asset')">+ Добавить актив</button>
+                </div>
+            </div>
+
+            <!-- Пассивы -->
+            <div class="section" id="liabilitySection">
+                <div class="section-header" onclick="toggleSection('liability')">
+                    <div class="section-title">
+                        <span>📊</span>
+                        <span>ПАССИВЫ</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="section-amount" id="liabilityTotal">0 $</div>
+                        <div class="section-toggle">▼</div>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="section-items" id="liabilityItems">
+                        <div class="empty-state">Нет пассивов</div>
+                    </div>
+                    <button class="add-btn" onclick="openModal('liability')">+ Добавить пассив</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">Добавить</div>
+            
+            <div class="form-group">
+                <label class="form-label">Название</label>
+                <input type="text" class="form-input" id="itemName" placeholder="Например: Зарплата">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Сумма ($)</label>
+                <input type="number" class="form-input" id="itemAmount" placeholder="0.00" step="0.01">
+            </div>
+            
+            <div class="form-group" id="rateGroup" style="display: none;">
+                <label class="form-label">Ставка (%)</label>
+                <input type="number" class="form-input" id="itemRate" placeholder="0.00" step="0.01">
+            </div>
+            
+            <div class="form-group" id="dateGroup">
+                <label class="form-label">Дата</label>
+                <input type="date" class="form-input" id="itemDate">
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeModal()">Отмена</button>
+                <button class="modal-btn confirm" onclick="saveItem()">Добавить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Данные
+        let incomes = [];
+        let expenses = [];
+        let assets = [];
+        let liabilities = [];
+        let currentType = '';
+        let editingId = null;
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            updateAll();
+            setTodayDate();
+        });
+
+        // Загрузка данных
+        function loadData() {
+            const saved = localStorage.getItem('financeTracker');
+            if (saved) {
+                const data = JSON.parse(saved);
+                incomes = data.incomes || [];
+                expenses = data.expenses || [];
+                assets = data.assets || [];
+                liabilities = data.liabilities || [];
+            }
+        }
+
+        // Сохранение данных
+        function saveData() {
+            const data = { incomes, expenses, assets, liabilities };
+            localStorage.setItem('financeTracker', JSON.stringify(data));
+        }
+
+        // Быстрое добавление
+        function quickAdd(type) {
+            currentType = type;
+            editingId = null;
+            
+            const modal = document.getElementById('modal');
+            const title = document.getElementById('modalTitle');
+            const rateGroup = document.getElementById('rateGroup');
+            const dateGroup = document.getElementById('dateGroup');
+            
+            // Настройка модального окна
+            const titles = {
+                income: '💰 ДОХОД',
+                expense: '💸 РАСХОД',
+                asset: '💳 АКТИВ',
+                liability: '📊 ПАССИВ'
+            };
+            
+            title.textContent = titles[type];
+            
+            // Показать/скрыть поля
+            if (type === 'asset' || type === 'liability') {
+                rateGroup.style.display = 'block';
+                dateGroup.style.display = 'none';
+            } else {
+                rateGroup.style.display = 'none';
+                dateGroup.style.display = 'block';
+            }
+            
+            // Очистка полей
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemAmount').value = '';
+            document.getElementById('itemRate').value = '';
+            document.getElementById('itemDate').value = new Date().toISOString().split('T')[0];
+            
+            modal.classList.add('show');
+            setTimeout(() => {
+                document.getElementById('itemName').focus();
+            }, 100);
+        }
+
+        // Открыть модальное окно
+        function openModal(type) {
+            quickAdd(type);
+        }
+
+        // Закрыть модальное окно
+        function closeModal() {
+            document.getElementById('modal').classList.remove('show');
+        }
+
+        // Сохранить элемент
+        function saveItem() {
+            const name = document.getElementById('itemName').value.trim();
+            const amount = parseFloat(document.getElementById('itemAmount').value);
+            const rate = parseFloat(document.getElementById('itemRate').value) || 0;
+            const date = document.getElementById('itemDate').value;
+            
+            if (!name || !amount || amount <= 0) {
+                alert('Заполните название и сумму!');
+                return;
+            }
+            
+            if (currentType === 'income' || currentType === 'expense') {
+                if (!date) {
+                    alert('Выберите дату!');
+                    return;
+                }
+            }
+            
+            const item = {
+                id: editingId || Date.now(),
+                name,
+                amount,
+                rate,
+                date: date || new Date().toISOString().split('T')[0]
+            };
+            
+            // Добавление в соответствующий массив
+            if (currentType === 'income') {
+                if (editingId) {
+                    const index = incomes.findIndex(i => i.id === editingId);
+                    incomes[index] = item;
+                } else {
+                    incomes.push(item);
+                }
+            } else if (currentType === 'expense') {
+                if (editingId) {
+                    const index = expenses.findIndex(e => e.id === editingId);
+                    expenses[index] = item;
+                } else {
+                    expenses.push(item);
+                }
+            } else if (currentType === 'asset') {
+                if (editingId) {
+                    const index = assets.findIndex(a => a.id === editingId);
+                    assets[index] = item;
+                } else {
+                    assets.push(item);
+                }
+            } else if (currentType === 'liability') {
+                if (editingId) {
+                    const index = liabilities.findIndex(l => l.id === editingId);
+                    liabilities[index] = item;
+                } else {
+                    liabilities.push(item);
+                }
+            }
+            
+            saveData();
+            updateAll();
+            closeModal();
+        }
+
+        // Удалить элемент
+        function deleteItem(type, id) {
+            if (!confirm('Удалить?')) return;
+            
+            if (type === 'income') {
+                incomes = incomes.filter(i => i.id !== id);
+            } else if (type === 'expense') {
+                expenses = expenses.filter(e => e.id !== id);
+            } else if (type === 'asset') {
+                assets = assets.filter(a => a.id !== id);
+            } else if (type === 'liability') {
+                liabilities = liabilities.filter(l => l.id !== id);
+            }
+            
+            saveData();
+            updateAll();
+        }
+
+        // Переключить секцию
+        function toggleSection(type) {
+            const section = document.getElementById(type + 'Section');
+            section.classList.toggle('expanded');
+        }
+
+        // Обновить все
+        function updateAll() {
+            updateBalance();
+            updateSection('income');
+            updateSection('expense');
+            updateSection('asset');
+            updateSection('liability');
+        }
+
+        // Обновить баланс
+        function updateBalance() {
+            const totalIncome = incomes.reduce((sum, i) => sum + i.amount, 0);
+            const totalExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
+            const totalAssets = assets.reduce((sum, a) => sum + a.amount, 0);
+            const totalLiabilities = liabilities.reduce((sum, l) => sum + l.amount, 0);
+            
+            const balance = (totalIncome - totalExpense) + (totalAssets - totalLiabilities);
+            
+            const balanceEl = document.getElementById('totalBalance');
+            balanceEl.textContent = balance.toFixed(2) + ' $';
+            balanceEl.className = 'balance-amount ' + (balance >= 0 ? 'positive' : 'negative');
+        }
+
+        // Обновить секцию
+        function updateSection(type) {
+            const items = type === 'income' ? incomes : 
+                        type === 'expense' ? expenses : 
+                        type === 'asset' ? assets : liabilities;
+            
+            const total = items.reduce((sum, item) => sum + item.amount, 0);
+            document.getElementById(type + 'Total').textContent = total.toFixed(2) + ' $';
+            
+            const container = document.getElementById(type + 'Items');
+            
+            if (items.length === 0) {
+                container.innerHTML = '<div class="empty-state">Нет ' + 
+                    (type === 'income' ? 'доходов' : 
+                     type === 'expense' ? 'расходов' : 
+                     type === 'asset' ? 'активов' : 'пассивов') + '</div>';
+                return;
+            }
+            
+            container.innerHTML = items.map(item => `
+                <div class="item">
+                    <div class="item-info">
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-details">
+                            ${item.date ? '📅 ' + item.date : ''}
+                            ${item.rate ? '📈 ' + item.rate + '%' : ''}
+                        </div>
+                    </div>
+                    <div class="item-amount">${item.amount.toFixed(2)} $</div>
+                    <div class="item-actions">
+                        <button class="item-btn" onclick="deleteItem('${type}', ${item.id})">✕</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Установить сегодняшнюю дату
+        function setTodayDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('itemDate').value = today;
+        }
+
+        // Закрытие модального окна по клику вне его
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Обработка клавиатуры
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

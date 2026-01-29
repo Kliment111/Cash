@@ -7,49 +7,30 @@ let refreshing = false;
 let isSwiping = false;
 let swipeStartTab = '';
 
-// Tab switching functions
+// Simple Tab Switching
 function switchToTab(tabName) {
-    currentTab = tabName;
-    updateDiaPanel();
-    updateIndicators();
+    // Hide all panels
+    document.querySelectorAll('.dia-panel').forEach(panel => {
+        panel.classList.remove('active');
+    });
     
-    // Add swipe animation effect
-    addSwipeAnimation();
+    // Remove active class from all tabs
+    document.querySelectorAll('.dia-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
     
-    // Scroll to top of dia container
-    const diaContainer = document.querySelector('.dia-container');
-    if (diaContainer) {
-        diaContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Show selected panel
+    const selectedPanel = document.querySelector(`[data-panel="${tabName}"]`);
+    if (selectedPanel) {
+        selectedPanel.classList.add('active');
     }
-}
-
-function updateDiaPanel() {
-    const panels = document.querySelectorAll('.dia-panel');
-    panels.forEach(panel => {
-        if (panel.dataset.panel === currentTab) {
-            panel.classList.add('active');
-            // Add animation class
-            panel.style.animation = 'slideInFromRight 0.3s ease-out';
-        } else {
-            panel.classList.remove('active');
-        }
-    });
-}
-
-function updateDiaTabs() {
-    // Function removed since tabs are no longer visible
-    // Keeping for backward compatibility
-}
-
-function updateIndicators() {
-    const indicators = document.querySelectorAll('.indicator');
-    indicators.forEach(indicator => {
-        if (indicator.dataset.indicator === currentTab) {
-            indicator.classList.add('active');
-        } else {
-            indicator.classList.remove('active');
-        }
-    });
+    
+    // Add active class to clicked tab
+    const clickedTab = event.target;
+    clickedTab.classList.add('active');
+    
+    // Update current tab
+    currentTab = tabName;
 }
 
 // Touch events for swipe navigation
