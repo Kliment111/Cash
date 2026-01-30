@@ -1,1462 +1,2924 @@
 // --- RATE EDITING FUNCTIONALITY ---
+
 let currentEditRateType = '';
+
 let currentEditRateCategory = '';
+
 let currentEditRateElement = null;
+
 let currentEditRateValue = 0;
 
+
+
 // Show edit rate options modal
+
 function showEditRateOptions(type, category, element) {
+
     currentEditRateType = type;
+
     currentEditRateCategory = category;
+
     currentEditRateElement = element;
+
     
+
     // Get current rate
+
     const rateText = element.textContent;
+
     currentEditRateValue = parseFloat(rateText.replace(/[^0-9.-]+/g, '')) || 0;
+
     
+
     // Get category name
+
     const categoryName = element.closest('tr').querySelector('.category-name').textContent;
+
     
+
     // Update modal content
+
     document.getElementById('editRateCategoryName').textContent = categoryName;
+
     document.getElementById('editRateCurrentRate').textContent = rateText;
+
     document.getElementById('editNewRate').value = '';
+
     
+
     // Show modal
+
     document.getElementById('editRateModal').classList.add('active');
+
     
+
     // Focus on input
+
     setTimeout(() => {
+
         const input = document.getElementById('editNewRate');
+
         input.focus();
+
         
+
         // Add Enter key handler
+
         input.onkeypress = function(e) {
+
             if (e.key === 'Enter') {
+
                 e.preventDefault();
+
                 applyRateEdit('replace');
+
             }
+
         };
+
     }, 100);
+
 }
+
+
 
 // Apply rate edit option
+
 function applyRateEdit(option) {
+
     const newRateInput = document.getElementById('editNewRate');
+
     const newRate = parseFloat(newRateInput.value) || 0;
+
     
+
     if (newRate < 0 || newRate > 100) {
+
         alert('Пожалуйста, введите корректную процентную ставку (от 0% до 100%)');
+
         return;
+
     }
+
     
+
     // Visual feedback
+
     const selectedBtn = document.getElementById('replaceRateBtn');
+
     if (selectedBtn) {
+
         selectedBtn.innerHTML = '<span class="loading">⏳</span> Обработка...';
+
         selectedBtn.disabled = true;
+
     }
+
     
+
     // Simulate processing delay
+
     setTimeout(() => {
+
         // Update the display
+
         updateCategoryRate(currentEditRateType, currentEditRateCategory, newRate);
+
         
+
         // Add transaction for rate change
+
         addRateChangeTransaction(currentEditRateType, currentEditRateCategory, currentEditRateValue, newRate);
+
         
+
         // Show success feedback
+
         if (selectedBtn) {
+
             selectedBtn.innerHTML = '<span class="success">✅</span> Готово!';
+
         }
+
         
+
         // Close modal after short delay
+
         setTimeout(() => {
+
             closeEditRateModal();
+
         }, 500);
+
     }, 300);
+
 }
+
+
 
 // Update category rate in table
+
 function updateCategoryRate(type, category, rate) {
+
     const formattedRate = rate.toFixed(2) + '%';
+
     
+
     if (currentEditRateElement) {
+
         currentEditRateElement.textContent = formattedRate;
+
     }
+
     
+
     // Save data
+
     saveCategoryRate(type, category, rate);
+
 }
+
+
 
 // Add rate change transaction
+
 function addRateChangeTransaction(type, category, oldRate, newRate) {
+
     if (oldRate === newRate) return; // No change needed
+
     
+
     const transaction = {
+
         type: type,
+
         category: category,
+
         oldRate: oldRate,
+
         newRate: newRate,
+
         rateChange: true,
+
         date: new Date().toISOString().split('T')[0],
+
         description: `Изменение процентной ставки ${getCategoryDisplayName(type, category)} с ${oldRate.toFixed(2)}% на ${newRate.toFixed(2)}%`
+
     };
+
     
+
     // Add to transactions array
+
     if (!window.transactions) window.transactions = [];
+
     window.transactions.push(transaction);
+
     
+
     // Save to localStorage
+
     localStorage.setItem('transactions', JSON.stringify(window.transactions));
+
 }
+
+
 
 // Close edit rate modal
+
 function closeEditRateModal() {
+
     document.getElementById('editRateModal').classList.remove('active');
+
     currentEditRateType = '';
+
     currentEditRateCategory = '';
+
     currentEditRateElement = null;
+
     currentEditRateValue = 0;
+
     
+
     // Reset button
+
     const replaceBtn = document.getElementById('replaceRateBtn');
+
     if (replaceBtn) {
+
         replaceBtn.innerHTML = '<span class="edit-option-title">Заменить ставку</span><span class="edit-option-desc">5% → 7.5% (установить новую ставку)</span>';
+
         replaceBtn.disabled = false;
+
     }
+
 }
+
+
 
 // Save category rate
+
 function saveCategoryRate(type, category, rate) {
+
     const key = `${type}_${category}_rate`;
+
     localStorage.setItem(key, rate.toString());
+
 }
+
+
 
 // Load category rate
+
 function loadCategoryRate(type, category) {
+
     const key = `${type}_${category}_rate`;
+
     const saved = localStorage.getItem(key);
+
     return saved ? parseFloat(saved) : 0;
+
 }
+
+
 
 // Initialize category rates on load
+
 function initializeCategoryRates() {
+
     const types = ['assets', 'liabilities'];
+
     
+
     types.forEach(type => {
+
         const tableBody = document.getElementById(type + 'TableBody');
+
         if (!tableBody) return;
+
         
+
         const rows = tableBody.querySelectorAll('.category-row');
+
         rows.forEach(row => {
+
             const category = row.dataset.category;
+
             const rate = loadCategoryRate(type, category);
+
             const rateCell = row.querySelector('.category-rate');
+
             
+
             if (rateCell && rate > 0) {
+
                 rateCell.textContent = rate.toFixed(2) + '%';
+
             }
+
         });
+
     });
+
 }
+
+
 
 // Update initializeCategoryData to also initialize rates
+
 function initializeCategoryData() {
+
     const types = ['income', 'expense', 'assets', 'liabilities'];
+
     
+
     types.forEach(type => {
+
         const tableBody = document.getElementById(type + 'TableBody');
+
         if (!tableBody) return;
+
         
+
         const rows = tableBody.querySelectorAll('.category-row');
+
         rows.forEach(row => {
+
             const category = row.dataset.category;
+
             const amount = loadCategoryData(type, category);
+
             const amountCell = row.querySelector('.category-amount');
+
             
+
             if (amountCell && amount > 0) {
+
                 const currency = getCurrency();
+
                 amountCell.textContent = amount.toFixed(2) + ' ' + currency;
+
             }
+
         });
+
         
+
         // Update totals
+
         updateTotals(type);
+
     });
+
     
+
     // Initialize rates for assets and liabilities
+
     initializeCategoryRates();
+
 }
+
+
 
 // --- FLIP CARD FUNCTIONALITY ---
+
 let currentEditType = '';
+
 let currentEditCategory = '';
+
 let currentEditElement = null;
+
 let currentEditAmount = 0;
 
+
+
 // Flip card function
+
 function flipCard(type) {
+
     const flipContainer = document.getElementById(type + 'FlipCard');
+
     if (flipContainer) {
+
         flipContainer.classList.toggle('flipped');
+
     }
+
 }
+
+
 
 // Show edit options modal
+
 function showEditOptions(type, category, element) {
+
     currentEditType = type;
+
     currentEditCategory = category;
+
     currentEditElement = element;
+
     
+
     // Get current amount
+
     const amountText = element.textContent;
+
     currentEditAmount = parseFloat(amountText.replace(/[^0-9.-]+/g, '')) || 0;
+
     
+
     // Get category name
+
     const categoryName = element.closest('tr').querySelector('.category-name').textContent;
+
     
+
     // Update modal content
+
     document.getElementById('editCategoryName').textContent = categoryName;
+
     document.getElementById('editCurrentAmount').textContent = amountText;
+
     document.getElementById('editNewAmount').value = '';
+
     
+
     // Update descriptions based on type
+
     updateEditDescriptions(type);
+
     
+
     // Show modal
+
     document.getElementById('editAmountModal').classList.add('active');
+
     
+
     // Focus on input
+
     setTimeout(() => {
+
         const input = document.getElementById('editNewAmount');
+
         input.focus();
+
         
+
         // Add Enter key handler
+
         input.onkeypress = function(e) {
+
             if (e.key === 'Enter') {
+
                 e.preventDefault();
+
                 // Try to apply the first selected option or default to 'add'
+
                 const selectedBtn = document.querySelector('.edit-option-btn.selected');
+
                 if (selectedBtn) {
+
                     selectedBtn.click();
+
                 } else {
+
                     applyEditOption('add');
+
                 }
+
             }
+
         };
+
         
+
         // Add input change handler to update button states
+
         input.oninput = function() {
+
             updateEditButtonStates();
+
         };
+
     }, 100);
+
 }
+
+
 
 // Update edit button states based on input
+
 function updateEditButtonStates() {
+
     const newAmountInput = document.getElementById('editNewAmount');
+
     const newAmount = parseFloat(newAmountInput.value) || 0;
+
     const buttons = document.querySelectorAll('.edit-option-btn');
+
     
+
     buttons.forEach(btn => {
+
         btn.classList.remove('selected');
+
     });
+
     
+
     // Auto-select based on amount comparison
+
     if (newAmount > 0) {
+
         if (newAmount > currentEditAmount) {
+
             // For larger amounts, prefer 'adjust' for income/expense, 'add' for assets/liabilities
+
             const preferAdd = currentEditType === 'assets' || currentEditType === 'liabilities';
+
             const targetBtn = preferAdd ? 
+
                 document.getElementById('addToCurrentBtn') : 
+
                 document.getElementById('adjustDifferenceBtn');
+
             if (targetBtn) targetBtn.classList.add('selected');
+
         } else if (newAmount < currentEditAmount) {
+
             // For smaller amounts, prefer 'adjust'
+
             document.getElementById('adjustDifferenceBtn')?.classList.add('selected');
+
         } else {
+
             // Same amount, prefer 'replace'
+
             document.getElementById('replaceAmountBtn')?.classList.add('selected');
+
         }
+
     }
+
 }
+
+
 
 // Update edit descriptions based on type
+
 function updateEditDescriptions(type) {
+
     const isAssetsLiabilities = type === 'assets' || type === 'liabilities';
+
     
+
     if (isAssetsLiabilities) {
+
         document.getElementById('editAmountTitle').textContent = 'Редактирование актива/пассива';
+
         document.getElementById('adjustTitle').textContent = 'Добавляем разницу';
+
         document.getElementById('addDesc').textContent = '5000 + 6000 = 11000 (в доход/расход)';
+
         document.getElementById('adjustDesc').textContent = '5000 → 11000 (добавляет 6000 в доход/расход)';
+
         document.getElementById('replaceDesc').textContent = '5000 → 11000 (без добавления в доход/расход)';
+
     } else {
+
         document.getElementById('editAmountTitle').textContent = 'Редактирование суммы';
+
         document.getElementById('adjustTitle').textContent = type === 'expense' ? 'Скорректировать в меньшую сторону' : 'Добавляем разницу';
+
         document.getElementById('addDesc').textContent = '5000 + 6000 = 11000';
+
         document.getElementById('adjustDesc').textContent = type === 'expense' ? '5000 → 4000 (уменьшает на 1000)' : '5000 → 11000 (добавляет 6000)';
+
         document.getElementById('replaceDesc').textContent = '5000 → 11000';
+
     }
+
 }
+
+
 
 // Apply edit option
+
 function applyEditOption(option) {
+
     const newAmountInput = document.getElementById('editNewAmount');
+
     const newAmount = parseFloat(newAmountInput.value) || 0;
+
     
+
     if (newAmount <= 0) {
+
         alert('Пожалуйста, введите корректную сумму');
+
         return;
+
     }
+
     
+
     // Visual feedback - highlight selected button
+
     const buttons = document.querySelectorAll('.edit-option-btn');
+
     buttons.forEach(btn => btn.classList.remove('selected'));
+
     document.getElementById(option + 'Btn')?.classList.add('selected');
+
     
+
     let finalAmount = 0;
+
     let transactionAmount = 0;
+
     
+
     switch (option) {
+
         case 'add':
+
             finalAmount = currentEditAmount + newAmount;
+
             transactionAmount = newAmount;
+
             break;
+
         case 'adjust':
+
             if (newAmount > currentEditAmount) {
+
                 finalAmount = newAmount;
+
                 transactionAmount = newAmount - currentEditAmount;
+
             } else {
+
                 finalAmount = newAmount;
+
                 transactionAmount = -(currentEditAmount - newAmount);
+
             }
+
             break;
+
         case 'replace':
+
             finalAmount = newAmount;
+
             transactionAmount = 0; // No transaction for replace
+
             break;
+
     }
+
     
+
     // Show loading state
+
     const selectedBtn = document.getElementById(option + 'Btn');
+
     if (selectedBtn) {
+
         selectedBtn.innerHTML = '<span class="loading">⏳</span> Обработка...';
+
         selectedBtn.disabled = true;
+
     }
+
     
+
     // Simulate processing delay for better UX
+
     setTimeout(() => {
+
         // Update the display
+
         updateCategoryAmount(currentEditType, currentEditCategory, finalAmount);
+
         
+
         // Add transaction if needed
+
         if (transactionAmount !== 0) {
+
             addEditTransaction(currentEditType, currentEditCategory, transactionAmount, option);
+
         }
+
         
+
         // Show success feedback
+
         if (selectedBtn) {
+
             selectedBtn.innerHTML = '<span class="success">✅</span> Готово!';
+
         }
+
         
+
         // Close modal after short delay
+
         setTimeout(() => {
+
             closeEditAmountModal();
+
         }, 500);
+
     }, 300);
+
 }
+
+
 
 // Update category amount in table
+
 function updateCategoryAmount(type, category, amount) {
+
     const currency = getCurrency();
+
     const formattedAmount = amount.toFixed(2) + ' ' + currency;
+
     
+
     if (currentEditElement) {
+
         currentEditElement.textContent = formattedAmount;
+
     }
+
     
+
     // Update totals
+
     updateTotals(type);
+
     
+
     // Save data
+
     saveCategoryData(type, category, amount);
+
 }
+
+
 
 // Add transaction from edit
+
 function addEditTransaction(type, category, amount, option) {
+
     const transaction = {
+
         type: type,
+
         category: category,
+
         amount: Math.abs(amount),
+
         date: new Date().toISOString().split('T')[0],
+
         description: getTransactionDescription(type, category, option, amount),
+
         editOption: option
+
     };
+
     
+
     // Add to transactions array
+
     if (!window.transactions) window.transactions = [];
+
     window.transactions.push(transaction);
+
     
+
     // Save to localStorage
+
     localStorage.setItem('transactions', JSON.stringify(window.transactions));
+
 }
+
+
 
 // Get transaction description
+
 function getTransactionDescription(type, category, option, amount) {
+
     const categoryName = getCategoryDisplayName(type, category);
+
     const isNegative = amount < 0;
+
     const absAmount = Math.abs(amount).toFixed(2);
+
     
+
     if (type === 'assets' || type === 'liabilities') {
+
         if (option === 'add') {
+
             return `Пополнение ${categoryName} на ${absAmount}`;
+
         } else if (option === 'adjust') {
+
             return isNegative ? `Снятие с ${categoryName} ${absAmount}` : `Пополнение ${categoryName} на ${absAmount}`;
+
         }
+
     } else {
+
         if (option === 'add') {
+
             return `${type === 'income' ? 'Добавлен доход' : 'Добавлен расход'}: ${categoryName} - ${absAmount}`;
+
         } else if (option === 'adjust') {
+
             return `${isNegative ? 'Уменьшение' : 'Корректировка'} ${categoryName}: ${absAmount}`;
+
         }
+
     }
+
     
+
     return `Изменение ${categoryName}: ${absAmount}`;
+
 }
+
+
 
 // Get category display name
+
 function getCategoryDisplayName(type, category) {
+
     const categoryNames = {
+
         income: {
+
             salary: 'Зарплата',
+
             freelance: 'Фриланс',
+
             investment: 'Инвестиции',
+
             other: 'Другое'
+
         },
+
         expense: {
+
             food: 'Продукты',
+
             transport: 'Транспорт',
+
             utilities: 'Коммунальные услуги',
+
             entertainment: 'Развлечения',
+
             health: 'Здоровье',
+
             shopping: 'Покупки',
+
             other: 'Другое'
+
         },
+
         assets: {
+
             cash: 'Наличные',
+
             bank: 'Банковский счет',
+
             savings: 'Сбережения',
+
             investments: 'Инвестиции'
+
         },
+
         liabilities: {
+
             mortgage: 'Ипотека',
+
             car_loan: 'Автокредит',
+
             consumer_loan: 'Потребительский кредит',
+
             credit_card: 'Кредитная карта'
+
         }
+
     };
+
     
+
     return categoryNames[type]?.[category] || category;
+
 }
+
+
 
 // Close edit amount modal
+
 function closeEditAmountModal() {
+
     document.getElementById('editAmountModal').classList.remove('active');
+
     currentEditType = '';
+
     currentEditCategory = '';
+
     currentEditElement = null;
+
     currentEditAmount = 0;
+
 }
+
+
 
 // Save category data
+
 function saveCategoryData(type, category, amount) {
+
     const key = `${type}_${category}_amount`;
+
     localStorage.setItem(key, amount.toString());
+
 }
+
+
 
 // Load category data
+
 function loadCategoryData(type, category) {
+
     const key = `${type}_${category}_amount`;
+
     const saved = localStorage.getItem(key);
+
     return saved ? parseFloat(saved) : 0;
+
 }
+
+
 
 // Update totals for a type
+
 function updateTotals(type) {
+
     const tableBody = document.getElementById(type + 'TableBody');
+
     if (!tableBody) return;
+
     
+
     let total = 0;
+
     const rows = tableBody.querySelectorAll('.category-amount');
+
     
+
     rows.forEach(row => {
+
         const amount = parseFloat(row.textContent.replace(/[^0-9.-]+/g, '')) || 0;
+
         total += amount;
+
     });
+
     
+
     const totalElement = document.getElementById('total' + type.charAt(0).toUpperCase() + type.slice(1) + 'Amount');
+
     if (totalElement) {
+
         const currency = getCurrency();
+
         totalElement.textContent = total.toFixed(2) + ' ' + currency;
+
     }
+
 }
+
+
 
 // Get current currency
+
 function getCurrency() {
+
     return localStorage.getItem('currency') || '$';
+
 }
+
+
 
 // Back button functions
+
 function showHistory(type) {
+
     const transactions = getTransactionsByType(type);
+
     const modal = createHistoryModal(type, transactions);
+
     document.body.appendChild(modal);
+
     modal.classList.add('active');
+
 }
+
+
 
 function showCategories(type) {
+
     const modal = createCategoriesModal(type);
+
     document.body.appendChild(modal);
+
     modal.classList.add('active');
+
 }
+
+
 
 function showSettings(type) {
+
     const modal = createSettingsModal(type);
+
     document.body.appendChild(modal);
+
     modal.classList.add('active');
+
 }
+
+
 
 function addIncomeFromBack() {
+
     flipCard('income');
+
     showAddTransactionModal('income');
+
 }
+
+
 
 function addExpenseFromBack() {
+
     flipCard('expense');
+
     showAddTransactionModal('expense');
+
 }
+
+
 
 function addAssetFromBack() {
+
     flipCard('assets');
+
     showAddTransactionModal('assets');
+
 }
+
+
 
 function addLiabilityFromBack() {
+
     flipCard('liabilities');
+
     showAddTransactionModal('liabilities');
+
 }
+
+
 
 // Get transactions by type
+
 function getTransactionsByType(type) {
+
     if (!window.transactions) window.transactions = [];
+
     return window.transactions.filter(t => t.type === type);
+
 }
+
+
 
 // Create history modal
+
 function createHistoryModal(type, transactions) {
+
     const modal = document.createElement('div');
+
     modal.className = 'modal history-modal';
+
     modal.innerHTML = `
+
         <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+
         <div class="modal-content">
+
             <div class="modal-header">
+
                 <h2>📜 История ${getTypeDisplayName(type)}</h2>
+
                 <button class="modal-close" onclick="this.closest('.modal').remove()">✕</button>
+
             </div>
+
             <div class="modal-body">
+
                 <div class="history-list">
+
                     ${transactions.length > 0 ? transactions.map(t => `
+
                         <div class="history-item">
+
                             <div class="history-date">${t.date}</div>
+
                             <div class="history-description">${t.description}</div>
+
                             <div class="history-amount ${t.type}">${t.amount > 0 ? '+' : '-'}${t.amount.toFixed(2)} ${getCurrency()}</div>
+
                         </div>
+
                     `).join('') : '<p>История пуста</p>'}
+
                 </div>
+
             </div>
+
             <div class="modal-footer">
+
                 <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Закрыть</button>
+
             </div>
+
         </div>
+
     `;
+
     return modal;
+
 }
+
+
 
 // Create categories modal
+
 function createCategoriesModal(type) {
+
     const modal = document.createElement('div');
+
     modal.className = 'modal categories-modal';
+
     modal.innerHTML = `
+
         <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+
         <div class="modal-content">
+
             <div class="modal-header">
+
                 <h2>📂 Управление категориями ${getTypeDisplayName(type)}</h2>
+
                 <button class="modal-close" onclick="this.closest('.modal').remove()">✕</button>
+
             </div>
+
             <div class="modal-body">
+
                 <div class="categories-management">
+
                     <div class="category-list" id="${type}CategoryList">
+
                         <!-- Categories will be populated here -->
+
                     </div>
+
                     <div class="add-category-form">
+
                         <input type="text" id="newCategoryName" placeholder="Название новой категории" class="input-field">
+
                         <button class="btn btn-primary" onclick="addNewCategory('${type}')">Добавить категорию</button>
+
                     </div>
+
                 </div>
+
             </div>
+
             <div class="modal-footer">
+
                 <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Закрыть</button>
+
             </div>
+
         </div>
+
     `;
+
     
+
     // Populate categories after creation
+
     setTimeout(() => populateCategoryList(type), 100);
+
     return modal;
+
 }
+
+
 
 // Create settings modal
+
 function createSettingsModal(type) {
+
     const modal = document.createElement('div');
+
     modal.className = 'modal settings-modal';
+
     modal.innerHTML = `
+
         <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+
         <div class="modal-content">
+
             <div class="modal-header">
+
                 <h2>⚙️ Настройки ${getTypeDisplayName(type)}</h2>
+
                 <button class="modal-close" onclick="this.closest('.modal').remove()">✕</button>
+
             </div>
+
             <div class="modal-body">
+
                 <div class="settings-options">
+
                     <div class="setting-item">
+
                         <label>Валюта для ${getTypeDisplayName(type)}:</label>
+
                         <select id="${type}Currency" class="input-field">
+
                             <option value="$">Доллар ($)</option>
+
                             <option value="₴">Гривна (₴)</option>
+
                             <option value="€">Евро (€)</option>
+
                         </select>
+
                     </div>
+
                     <div class="setting-item">
+
                         <label>Показывать в сводке:</label>
+
                         <input type="checkbox" id="${type}ShowInSummary" checked>
+
                     </div>
+
                     <div class="setting-item">
+
                         <label>Уведомления:</label>
+
                         <input type="checkbox" id="${type}Notifications">
+
                     </div>
+
                 </div>
+
             </div>
+
             <div class="modal-footer">
+
                 <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Отмена</button>
+
                 <button class="btn btn-primary" onclick="saveSettings('${type}')">Сохранить</button>
+
             </div>
+
         </div>
+
     `;
+
     return modal;
+
 }
+
+
 
 // Show add transaction modal
+
 function showAddTransactionModal(type) {
+
     const modal = document.createElement('div');
+
     modal.className = 'modal add-transaction-modal';
+
     
+
     const isAssetLiability = type === 'assets' || type === 'liabilities';
+
     
+
     modal.innerHTML = `
+
         <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+
         <div class="modal-content">
+
             <div class="modal-header">
+
                 <h2>➕ Добавить ${getTypeDisplayName(type).slice(0, -1)}</h2>
+
                 <button class="modal-close" onclick="this.closest('.modal').remove()">✕</button>
+
             </div>
+
             <div class="modal-body">
+
                 <div class="form-group">
+
                     <label>Категория:</label>
+
                     <select id="addTransactionCategory" class="input-field">
+
                         ${getCategoriesForType(type).map(cat => `<option value="${cat.value}">${cat.name}</option>`).join('')}
+
                     </select>
+
                 </div>
+
                 <div class="form-group">
+
                     <label>Сумма (${getCurrency()}):</label>
+
                     <input type="number" id="addTransactionAmount" class="input-field" placeholder="0.00" step="0.01" min="0">
+
                 </div>
+
                 ${isAssetLiability ? `
+
                 <div class="form-group">
+
                     <label>Процентная ставка (%):</label>
+
                     <input type="number" id="addTransactionRate" class="input-field" placeholder="0.00" step="0.01" min="0">
+
                 </div>
+
                 ` : ''}
+
                 <div class="form-group">
+
                     <label>Описание:</label>
+
                     <input type="text" id="addTransactionDescription" class="input-field" placeholder="Описание">
+
                 </div>
+
             </div>
+
             <div class="modal-footer">
+
                 <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Отмена</button>
+
                 <button class="btn btn-primary" onclick="addNewTransaction('${type}')">Добавить</button>
+
             </div>
+
         </div>
+
     `;
+
     
+
     document.body.appendChild(modal);
+
     modal.classList.add('active');
+
 }
+
+
 
 // Helper functions
+
 function getTypeDisplayName(type) {
+
     const names = {
+
         income: 'доходов',
+
         expense: 'расходов',
+
         assets: 'активов',
+
         liabilities: 'пассивов'
+
     };
+
     return names[type] || type;
+
 }
+
+
 
 function getCategoriesForType(type) {
+
     const categories = {
+
         income: [
+
             { value: 'salary', name: 'Зарплата' },
+
             { value: 'freelance', name: 'Фриланс' },
+
             { value: 'investment', name: 'Инвестиции' },
+
             { value: 'other', name: 'Другое' }
+
         ],
+
         expense: [
+
             { value: 'food', name: 'Продукты' },
+
             { value: 'transport', name: 'Транспорт' },
+
             { value: 'utilities', name: 'Коммунальные услуги' },
+
             { value: 'entertainment', name: 'Развлечения' },
+
             { value: 'health', name: 'Здоровье' },
+
             { value: 'shopping', name: 'Покупки' },
+
             { value: 'other', name: 'Другое' }
+
         ],
+
         assets: [
+
             { value: 'cash', name: 'Наличные' },
+
             { value: 'bank', name: 'Банковский счет' },
+
             { value: 'savings', name: 'Сбережения' },
+
             { value: 'investments', name: 'Инвестиции' }
+
         ],
+
         liabilities: [
+
             { value: 'mortgage', name: 'Ипотека' },
+
             { value: 'car_loan', name: 'Автокредит' },
+
             { value: 'consumer_loan', name: 'Потребительский кредит' },
+
             { value: 'credit_card', name: 'Кредитная карта' }
+
         ]
+
     };
+
     return categories[type] || [];
+
 }
+
+
 
 function populateCategoryList(type) {
+
     const listElement = document.getElementById(type + 'CategoryList');
+
     if (!listElement) return;
+
     
+
     const categories = getCategoriesForType(type);
+
     listElement.innerHTML = categories.map(cat => `
+
         <div class="category-item">
+
             <span>${cat.name}</span>
+
             <button class="btn btn-danger btn-sm" onclick="removeCategory('${type}', '${cat.value}')">Удалить</button>
+
         </div>
+
     `).join('');
+
 }
+
+
 
 function addNewCategory(type) {
+
     const input = document.getElementById('newCategoryName');
+
     const name = input.value.trim();
+
     
+
     if (!name) {
+
         alert('Введите название категории');
+
         return;
+
     }
+
     
+
     // Add category logic here
+
     alert(`Категория "${name}" добавлена для ${type}`);
+
     input.value = '';
+
     populateCategoryList(type);
+
 }
+
+
 
 function removeCategory(type, category) {
+
     if (confirm(`Удалить категорию?`)) {
+
         alert(`Категория ${category} удалена`);
+
         populateCategoryList(type);
+
     }
+
 }
+
+
 
 function saveSettings(type) {
+
     alert(`Настройки для ${type} сохранены`);
+
     document.querySelector('.modal').remove();
+
 }
+
+
 
 function addNewTransaction(type) {
+
     const category = document.getElementById('addTransactionCategory').value;
+
     const amount = parseFloat(document.getElementById('addTransactionAmount').value) || 0;
+
     const description = document.getElementById('addTransactionDescription').value || '';
+
     
+
     if (amount <= 0) {
+
         alert('Введите корректную сумму');
+
         return;
+
     }
+
     
+
     // Add transaction logic
+
     const transaction = {
+
         type: type,
+
         category: category,
+
         amount: amount,
+
         description: description,
+
         date: new Date().toISOString().split('T')[0]
+
     };
+
     
+
     if (!window.transactions) window.transactions = [];
+
     window.transactions.push(transaction);
+
     localStorage.setItem('transactions', JSON.stringify(window.transactions));
+
     
+
     // Update display
+
     updateCategoryAmount(type, category, 
+
         (loadCategoryData(type, category) || 0) + amount);
+
     
+
     alert('Транзакция добавлена');
+
     document.querySelector('.modal').remove();
+
 }
+
+
 
 // Initialize category data on load
+
 function initializeCategoryData() {
+
     const types = ['income', 'expense', 'assets', 'liabilities'];
+
     
+
     types.forEach(type => {
+
         const tableBody = document.getElementById(type + 'TableBody');
+
         if (!tableBody) return;
+
         
+
         const rows = tableBody.querySelectorAll('.category-row');
+
         rows.forEach(row => {
+
             const category = row.dataset.category;
+
             const amount = loadCategoryData(type, category);
+
             const amountCell = row.querySelector('.category-amount');
+
             
+
             if (amountCell && amount > 0) {
+
                 const currency = getCurrency();
+
                 amountCell.textContent = amount.toFixed(2) + ' ' + currency;
+
             }
+
         });
+
         
+
         // Update totals
+
         updateTotals(type);
+
     });
+
 }
+
+
 
 // --- DІЯ STYLE NAVIGATION ---
+
 let currentTab = 'income'; // income, expense, assets, liabilities
+
 let touchStartX = 0;
+
 let touchEndX = 0;
+
 let deferredInstallPrompt = null;
+
 let refreshing = false;
+
 let isSwiping = false;
+
 let swipeStartTab = '';
 
+
+
 // Tab switching functions
+
 function switchToTab(tabName) {
+
     currentTab = tabName;
+
     updateDiaPanel();
+
     updateIndicators();
+
     
+
     // Add swipe animation effect
+
     addSwipeAnimation();
+
     
+
     // Scroll to top of dia container
+
     const diaContainer = document.querySelector('.dia-container');
+
     if (diaContainer) {
+
         diaContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
     }
+
 }
+
+
 
 function updateDiaPanel() {
+
     const panels = document.querySelectorAll('.dia-panel');
+
     panels.forEach(panel => {
+
         if (panel.dataset.panel === currentTab) {
+
             panel.classList.add('active');
+
             // Add animation class
+
             panel.style.animation = 'slideInFromRight 0.3s ease-out';
+
         } else {
+
             panel.classList.remove('active');
+
         }
+
     });
+
 }
+
+
 
 function updateDiaTabs() {
+
     // Function removed since tabs are no longer visible
+
     // Keeping for backward compatibility
+
 }
+
+
 
 function updateIndicators() {
+
     const indicators = document.querySelectorAll('.indicator');
+
     indicators.forEach(indicator => {
+
         if (indicator.dataset.indicator === currentTab) {
+
             indicator.classList.add('active');
+
         } else {
+
             indicator.classList.remove('active');
+
         }
+
     });
+
 }
+
+
 
 // Touch events for swipe navigation
+
 function handleTouchStart(e) {
+
     touchStartX = e.changedTouches[0].screenX;
+
     swipeStartTab = currentTab;
+
     isSwiping = false;
+
     
+
     // Check if touch is on a button
+
     const touchTarget = e.target;
+
     if (touchTarget.tagName === 'BUTTON' || touchTarget.closest('button')) {
+
         // Don't prevent default for buttons
+
         return;
+
     }
+
     
+
     e.preventDefault();
+
     
+
     // Add swiping class to prevent scrolling
+
     const diaContainer = document.querySelector('.dia-container');
+
     if (diaContainer) {
+
         diaContainer.classList.add('swiping');
+
     }
+
 }
+
+
 
 function handleTouchMove(e) {
+
     if (!touchStartX) return;
+
     
+
     // Check if touch is on a button
+
     const touchTarget = e.target;
+
     if (touchTarget.tagName === 'BUTTON' || touchTarget.closest('button')) {
+
         // Don't handle swipe on buttons
+
         return;
+
     }
+
     
+
     const touchEndX = e.changedTouches[0].screenX;
+
     const diff = touchStartX - touchEndX;
+
     
+
     // Only start swipe if moved enough
+
     if (Math.abs(diff) > 10) {
+
         isSwiping = true;
+
     }
+
     
+
     // Prevent default scrolling when swiping
+
     if (isSwiping) {
+
         e.preventDefault();
+
     }
+
 }
+
+
 
 function handleTouchEnd(e) {
+
     if (!touchStartX) return;
+
     
+
     // Check if touch is on a button
+
     const touchTarget = e.target;
+
     if (touchTarget.tagName === 'BUTTON' || touchTarget.closest('button')) {
+
         // Reset swipe state but don't handle swipe
+
         touchStartX = 0;
+
         touchEndX = 0;
+
         isSwiping = false;
+
         return;
+
     }
+
     
+
     if (!isSwiping) {
+
         touchStartX = 0;
+
         touchEndX = 0;
+
         return;
+
     }
+
     
+
     touchEndX = e.changedTouches[0].screenX;
+
     handleSwipeGesture();
+
     
+
     touchStartX = 0;
+
     touchEndX = 0;
+
     isSwiping = false;
+
     e.preventDefault();
+
     
+
     // Remove swiping class to restore scrolling
+
     const diaContainer = document.querySelector('.dia-container');
+
     if (diaContainer) {
+
         diaContainer.classList.remove('swiping');
+
     }
+
 }
+
+
 
 function handleSwipeGesture() {
+
     const swipeThreshold = 50;
+
     const diff = touchStartX - touchEndX;
+
     const tabs = ['income', 'expense', 'assets', 'liabilities'];
+
     const currentIndex = tabs.indexOf(currentTab);
+
     
+
     if (Math.abs(diff) > swipeThreshold) {
+
         if (diff > 0 && currentIndex < tabs.length - 1) {
+
             // Swipe left - next tab
+
             switchToTab(tabs[currentIndex + 1]);
+
             showSwipeHint('←', 'Свайп влево');
+
         } else if (diff < 0 && currentIndex > 0) {
+
             // Swipe right - previous tab
+
             switchToTab(tabs[currentIndex - 1]);
+
             showSwipeHint('→', 'Свайп вправо');
+
         }
+
     }
+
 }
 
+
+
 // Add smooth transition enhancement
+
 function enhanceSwipeTransitions() {
+
     const diaContainer = document.querySelector('.dia-container');
+
     const panels = document.querySelectorAll('.dia-panel');
+
     
+
     // Add smooth transitions to panels
+
     panels.forEach(panel => {
+
         panel.style.transition = 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+
     });
+
     
+
     // Add momentum-based scrolling
+
     if (diaContainer) {
+
         let isScrolling = false;
+
         let scrollStartY = 0;
+
         let scrollEndY = 0;
+
         
+
         diaContainer.addEventListener('touchstart', function(e) {
+
             scrollStartY = e.touches[0].clientY;
+
             isScrolling = false;
+
         }, { passive: true });
+
         
+
         diaContainer.addEventListener('touchmove', function(e) {
+
             scrollEndY = e.touches[0].clientY;
+
             const scrollDiff = Math.abs(scrollStartY - scrollEndY);
+
             
+
             if (scrollDiff > 10) {
+
                 isScrolling = true;
+
             }
+
         }, { passive: true });
+
         
+
         diaContainer.addEventListener('touchend', function() {
+
             if (isScrolling) {
+
                 // Add momentum scrolling effect
+
                 const scrollDiff = scrollStartY - scrollEndY;
+
                 if (Math.abs(scrollDiff) > 50) {
+
                     diaContainer.scrollTop += scrollDiff * 0.5;
+
                 }
+
             }
+
         }, { passive: true });
+
     }
+
 }
+
+
 
 // Touch events initialization moved to initializeDiaNavigation()
 
+
+
 // --- SWIPE VISUAL FEEDBACK ---
+
 function addSwipeAnimation() {
+
     const diaContainer = document.querySelector('.dia-container');
+
     if (diaContainer) {
+
         diaContainer.style.transform = 'scale(0.98)';
+
         setTimeout(() => {
+
             diaContainer.style.transform = 'scale(1)';
+
         }, 200);
+
     }
+
 }
+
+
 
 function showSwipeHint(arrow, text) {
+
     // Remove existing hint if any
+
     const existingHint = document.querySelector('.swipe-hint');
+
     if (existingHint) {
+
         existingHint.remove();
+
     }
+
     
+
     // Create swipe hint element
+
     const hint = document.createElement('div');
+
     hint.className = 'swipe-hint';
+
     hint.innerHTML = `
+
         <div class="swipe-hint-arrow">${arrow}</div>
+
         <div class="swipe-hint-text">${text}</div>
+
     `;
+
     
+
     // Style the hint
+
     hint.style.cssText = `
+
         position: fixed;
+
         top: 50%;
+
         left: 50%;
+
         transform: translate(-50%, -50%);
+
         background: rgba(0, 0, 0, 0.8);
+
         color: white;
+
         padding: 20px 30px;
+
         border-radius: 12px;
+
         font-size: 18px;
+
         font-weight: 600;
+
         z-index: 10000;
+
         display: flex;
+
         align-items: center;
+
         gap: 15px;
+
         animation: swipeHintFade 1.5s ease-out forwards;
+
         backdrop-filter: blur(10px);
+
         border: 2px solid rgba(255, 215, 0, 0.3);
+
     `;
+
     
+
     document.body.appendChild(hint);
+
     
+
     // Auto remove after animation
+
     setTimeout(() => {
+
         if (hint.parentNode) {
+
             hint.remove();
+
         }
+
     }, 1500);
+
 }
+
+
 
 // Add CSS animation for swipe hint
+
 const swipeHintStyle = document.createElement('style');
+
 swipeHintStyle.textContent = `
+
     @keyframes swipeHintFade {
+
         0% {
+
             opacity: 0;
+
             transform: translate(-50%, -50%) scale(0.8);
+
         }
+
         20% {
+
             opacity: 1;
+
             transform: translate(-50%, -50%) scale(1.1);
+
         }
+
         40% {
+
             opacity: 1;
+
             transform: translate(-50%, -50%) scale(1);
+
         }
+
         100% {
+
             opacity: 0;
+
             transform: translate(-50%, -50%) scale(0.9);
+
         }
+
     }
+
     
+
     @keyframes slideInFromRight {
+
         0% {
+
             opacity: 0;
+
             transform: translateX(30px);
+
         }
+
         100% {
+
             opacity: 1;
+
             transform: translateX(0);
+
         }
+
     }
+
     
+
     .swipe-hint-arrow {
+
         font-size: 24px;
+
         color: #FFD700;
+
     }
+
     
+
     .swipe-hint-text {
+
         font-size: 16px;
+
         color: white;
+
     }
+
 `;
+
 document.head.appendChild(swipeHintStyle);
 
+
+
 // --- LEGACY SWIPE NAVIGATION (for backward compatibility) ---
+
 let currentSwipePanel = 0; // 0 = transactions, 1 = assets/liabilities
 
+
+
 function switchToTransactions() {
+
     switchToTab('income'); // Redirect to new tab system
+
 }
+
+
 
 function switchToAssetsLiabilities() {
+
     switchToTab('assets'); // Redirect to new tab system
+
 }
+
+
 
 function updateSwipePanel() {
+
     // Legacy function - now handled by updateDiaPanel
+
 }
+
+
 
 function updateSwipeTabs() {
+
     // Legacy function - now handled by updateDiaTabs
+
 }
+
+
 
 // --- APP INITIALIZATION ---
+
 function initializeApp() {
+
     // Load data and initialize
+
     loadData();
+
     updateAll();
+
     
+
     // Initialize category data
+
     initializeCategoryData();
+
     
+
     initializeCustomSuggestions();
+
     
+
     // Setup auto-save
+
     setupAutoSave();
+
     
+
     // Start auto-backup system
+
     startAutoBackup();
+
     
+
     // Set up event listeners
+
     setupEventListeners();
+
     
+
     // Initialize DІЯ navigation (replaces old swipe navigation)
+
     initializeDiaNavigation();
+
     
+
     // Initialize enhanced swipe transitions
+
     enhanceSwipeTransitions();
+
     
+
     // Initialize cache status monitoring
+
     initializeCacheStatus();
+
     
+
     // Initialize PWA install button
+
     initializeInstallButton();
+
     
+
     // Set current month
+
     currentMonth = new Date();
+
     
+
     // Update month display
+
     updateMonthDisplay();
+
 }
+
+
 
 // Initialize DІЯ navigation
+
 function initializeDiaNavigation() {
+
     // Initialize indicators click events
+
     const indicators = document.querySelectorAll('.indicator');
+
     indicators.forEach(indicator => {
+
         indicator.addEventListener('click', function() {
+
             switchToTab(this.dataset.indicator);
+
         });
+
     });
+
 }
+
+
 
 // --- CALENDAR FUNCTIONALITY ---
+
 let calendarCurrentDate = new Date();
+
 let calendarSelectedDate = null;
 
+
+
 function initializeCalendar() {
+
     const calendarBtn = document.getElementById('calendarBtn');
+
     const calendarDropdown = document.getElementById('calendarDropdown');
+
     const calendarPrevBtn = document.getElementById('calendarPrevBtn');
+
     const calendarNextBtn = document.getElementById('calendarNextBtn');
+
     
+
     // Toggle calendar
+
     calendarBtn.addEventListener('click', function(e) {
+
         e.stopPropagation();
+
         calendarDropdown.classList.toggle('show');
+
         if (calendarDropdown.classList.contains('show')) {
+
             renderCalendar();
+
         }
+
     });
+
     
+
     // Close calendar when clicking outside
+
     document.addEventListener('click', function(e) {
+
         if (!calendarDropdown.contains(e.target) && e.target !== calendarBtn) {
+
             calendarDropdown.classList.remove('show');
+
         }
+
     });
+
     
+
     // Navigation buttons
+
     calendarPrevBtn.addEventListener('click', function(e) {
+
         e.stopPropagation();
+
         calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() - 1);
+
         renderCalendar();
+
     });
+
     
+
     calendarNextBtn.addEventListener('click', function(e) {
+
         e.stopPropagation();
+
         calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() + 1);
+
         renderCalendar();
+
     });
+
 }
+
+
 
 function renderCalendar() {
+
     const year = calendarCurrentDate.getFullYear();
+
     const month = calendarCurrentDate.getMonth();
+
     
+
     // Update title
+
     const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+
                        'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
     document.getElementById('calendarTitle').textContent = `${monthNames[month]} ${year}`;
+
     
+
     // Clear grid
+
     const calendarGrid = document.getElementById('calendarGrid');
+
     calendarGrid.innerHTML = '';
+
     
+
     // Add weekdays
+
     const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
     const weekdaysRow = document.createElement('div');
+
     weekdaysRow.className = 'calendar-weekdays';
+
     weekdays.forEach(day => {
+
         const dayElement = document.createElement('div');
+
         dayElement.className = 'calendar-weekday';
+
         dayElement.textContent = day;
+
         weekdaysRow.appendChild(dayElement);
+
     });
+
     calendarGrid.appendChild(weekdaysRow);
+
     
+
     // Add days
+
     const daysRow = document.createElement('div');
+
     daysRow.className = 'calendar-days';
+
     
+
     const firstDay = new Date(year, month, 1);
+
     const lastDay = new Date(year, month + 1, 0);
+
     const prevLastDay = new Date(year, month, 0);
+
     
+
     const firstDayOfWeek = firstDay.getDay() || 7; // Sunday = 7
+
     const daysInMonth = lastDay.getDate();
+
     const daysInPrevMonth = prevLastDay.getDate();
+
     
+
     const today = new Date();
+
     const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+
     const todayDate = today.getDate();
+
     
+
     // Previous month days
+
     for (let i = firstDayOfWeek - 2; i >= 0; i--) {
+
         const dayElement = createDayElement(daysInPrevMonth - i, true, false, false, year, month - 1);
+
         daysRow.appendChild(dayElement);
+
     }
+
     
+
     // Current month days
+
     for (let day = 1; day <= daysInMonth; day++) {
+
         const isToday = isCurrentMonth && day === todayDate;
+
         const hasTransactions = checkTransactionsForDate(year, month, day);
+
         const dayElement = createDayElement(day, false, isToday, hasTransactions, year, month);
+
         daysRow.appendChild(dayElement);
+
     }
+
     
+
     // Next month days
+
     const totalCells = daysRow.children.length;
+
     const remainingCells = 42 - totalCells; // 6 weeks * 7 days
+
     for (let day = 1; day <= remainingCells; day++) {
+
         const dayElement = createDayElement(day, true, false, false, year, month + 1);
+
         daysRow.appendChild(dayElement);
+
     }
+
     
+
     calendarGrid.appendChild(daysRow);
+
 }
+
+
 
 function createDayElement(day, isOtherMonth, isToday, hasTransactions, year, month) {
+
     const dayElement = document.createElement('button');
+
     dayElement.className = 'calendar-day';
+
     dayElement.textContent = day;
+
     
+
     if (isOtherMonth) {
+
         dayElement.classList.add('other-month');
+
     }
+
     
+
     if (isToday) {
+
         dayElement.classList.add('today');
+
     }
+
     
+
     if (hasTransactions) {
+
         dayElement.classList.add('has-transactions');
+
     }
+
     
+
     // Add click handler
+
     dayElement.addEventListener('click', function(e) {
+
         e.stopPropagation();
+
         selectDate(year, month, day);
+
     });
+
     
+
     return dayElement;
+
 }
+
+
 
 function checkTransactionsForDate(year, month, day) {
+
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
     return transactions.some(t => t.date === dateStr);
+
 }
+
+
 
 function selectDate(year, month, day) {
+
     // Remove previous selection
+
     document.querySelectorAll('.calendar-day.selected').forEach(el => {
+
         el.classList.remove('selected');
+
     });
+
     
+
     // Add selection to clicked day
+
     const days = document.querySelectorAll('.calendar-day');
+
     days.forEach(dayEl => {
+
         if (dayEl.textContent == day && !dayEl.classList.contains('other-month')) {
+
             dayEl.classList.add('selected');
+
         }
+
     });
+
     
+
     // Update current month in the app
+
     currentMonth = new Date(year, month, 1);
+
     
+
     // Update displays
+
     updateMonthDisplay();
+
     updateAll();
+
     
+
     // Close calendar
+
     document.getElementById('calendarDropdown').classList.remove('show');
+
 }
+
+
 
 // --- EVENT LISTENERS SETUP ---
+
 function setupEventListeners() {
+
     // Update suggestions when language changes
+
     document.addEventListener('languageChanged', updateSuggestions);
+
     
+
     // Initialize custom suggestions
+
     initializeCustomSuggestions();
 
+
+
     // Initialize calendar
+
     initializeCalendar();
+
 }
+
+
 
 function initializeInstallButton() {
+
     const installButton = document.getElementById('installAppBtn');
+
     const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+
     const isInStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
+
+
     console.log('Install button found:', !!installButton);
+
     console.log('Is iOS:', isIos);
+
     console.log('Is standalone:', isInStandalone);
+
     console.log('Deferred prompt available:', !!deferredInstallPrompt);
 
+
+
     if (installButton) {
+
         installButton.addEventListener('click', async () => {
+
             console.log('Install button clicked');
+
             if (deferredInstallPrompt) {
+
                 console.log('Showing install prompt');
+
                 deferredInstallPrompt.prompt();
+
                 const choiceResult = await deferredInstallPrompt.userChoice;
+
                 if (choiceResult.outcome === 'accepted') {
+
                     installButton.classList.remove('is-visible');
+
                 }
+
                 deferredInstallPrompt = null;
+
             } else if (isIos && !isInStandalone) {
+
                 console.log('Showing iOS instructions');
+
                 showIosInstallInstructions();
+
             } else {
+
                 console.log('No install prompt available, showing manual instructions');
+
                 alert('Установка недоступна. Попробуйте открыть в браузере Chrome на Android или следуйте инструкциям для iPhone.');
+
             }
+
         });
 
+
+
         if (isIos && !isInStandalone) {
+
             installButton.classList.add('is-visible');
+
         }
+
     }
+
 }
+
+
 
 function showIosInstallInstructions() {
+
     const modal = document.createElement('div');
+
     modal.className = 'modal active';
+
     modal.innerHTML = `
+
         <div class="modal-backdrop"></div>
+
         <div class="modal-content" style="max-width: 400px;">
+
             <div class="modal-header">
+
                 <h2>📱 Установка на iPhone</h2>
+
                 <button class="modal-close" onclick="this.closest('.modal').remove()">✕</button>
+
             </div>
+
             <div class="modal-body">
+
                 <div style="text-align: center; padding: 20px;">
+
                     <div style="font-size: 3rem; margin-bottom: 20px;">📱</div>
+
                     <h3 style="color: var(--primary); margin-bottom: 20px;">Как установить приложение:</h3>
+
                     <div style="text-align: left; background: var(--light-gray); padding: 15px; border-radius: 8px;">
+
                         <p style="margin-bottom: 10px;"><strong>1.</strong> Нажмите кнопку <strong>"Поделиться"</strong> 📤 внизу экрана</p>
+
                         <p style="margin-bottom: 10px;"><strong>2.</strong> Прокрутите и нажмите <strong>"На экран 'Домой'"</strong> ➕</p>
+
                         <p style="margin-bottom: 10px;"><strong>3.</strong> Нажмите <strong>"Добавить"</strong> для подтверждения</p>
+
                     </div>
+
                     <p style="color: var(--gray); font-size: 0.9rem; margin-top: 20px;">
+
                         Приложение появится на вашем домашнем экране!
+
                     </p>
+
                 </div>
+
             </div>
+
             <div class="modal-footer">
+
                 <button class="btn btn-primary" onclick="this.closest('.modal').remove()">Понятно</button>
+
             </div>
+
         </div>
+
     `;
+
     
+
     document.body.appendChild(modal);
+
 }
 
+
+
 // --- SPLASH SCREEN LOGIC ---
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize app directly (no splash screen)
+    updateLanguage();
+    initializeApp();
+    
     // Initialize swipe navigation for DIA container
     const diaContainer = document.querySelector('.dia-container');
     
@@ -1469,2589 +2931,5035 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeDiaNavigation();
     }
 
-    // Header language selector
-    const headerLanguageSelect = document.getElementById('headerLanguageSelect');
-    if (headerLanguageSelect) {
-        headerLanguageSelect.addEventListener('change', (e) => {
-            currentLanguage = e.target.value;
-            localStorage.setItem('language', currentLanguage);
-            
-            // Update splash language selector
-            const splashLanguage = document.getElementById('splashLanguage');
-            if (splashLanguage && splashLanguage.value !== currentLanguage) {
-                splashLanguage.value = currentLanguage;
-            }
-            
-            updateLanguage();
-        });
-        
-        // Set current language
-        headerLanguageSelect.value = currentLanguage;
-    }
-
-    // Splash screen logic
-    const splashScreen = document.getElementById('splashScreen');
-    const splashContinueBtn = document.getElementById('splashContinueBtn');
-    const splashLanguage = document.getElementById('splashLanguage');
-    const splashCurrency = document.getElementById('splashCurrency');
-    const container = document.querySelector('.container');
-    
-    document.documentElement.removeAttribute('data-theme');
-    
-    if (splashScreen && splashContinueBtn && splashLanguage && splashCurrency) {
-        container.style.display = 'none';
-        splashScreen.style.display = 'flex';
-        
-        // Load saved settings
-        const savedLanguage = localStorage.getItem('language');
-        const savedCurrency = localStorage.getItem('currency');
-        
-        if (savedLanguage) splashLanguage.value = savedLanguage;
-        if (savedCurrency) splashCurrency.value = savedCurrency;
-        
-        splashLanguage.addEventListener('change', updateLanguage);
-        splashCurrency.addEventListener('change', updateLanguage);
-        
-        updateLanguage();
-        
-        splashContinueBtn.onclick = function() {
-            // Сохраняем язык и валюту
-            localStorage.setItem('language', splashLanguage.value);
-            localStorage.setItem('currency', splashCurrency.value);
-            
-            // Скрываем splash screen и показываем приложение
-            splashScreen.style.display = 'none';
-            container.style.display = 'block';
-            
-            // Обновляем язык после загрузки приложения
-            updateLanguage();
-            
-            // Обновляем все данные после загрузки
-            updateAll();
-            
-            // Initialize app after splash
-            initializeApp();
-        };
-    } else {
-        // Если splash screen не найден, просто показываем приложение
-        updateLanguage();
-        initializeApp();
-    }
-
     // --- ENHANCED SERVICE WORKER UPDATE SYSTEM ---
+
     let refreshing = false;
+
     let currentAppVersion = '2.0.0';
 
+
+
     // Проверка обновлений при загрузке
+
     function checkForUpdates() {
+
         if ('serviceWorker' in navigator) {
+
             navigator.serviceWorker.register('./service-worker.js').then((registration) => {
+
                 console.log('[SW] Service Worker registered');
+
                 
+
                 // Проверяем наличие обновлений каждые 30 секунд
+
                 setInterval(() => {
+
                     registration.update();
+
                 }, 30000);
+
                 
+
                 // Проверяем обновления при возвращении на страницу
+
                 document.addEventListener('visibilitychange', () => {
+
                     if (!document.hidden) {
+
                         registration.update();
+
                     }
+
                 });
+
                 
+
                 // Обработка найденных обновлений
+
                 if (registration.waiting) {
+
                     showUpdateBanner(registration);
+
                 }
+
                 
+
                 registration.addEventListener('updatefound', () => {
+
                     const newWorker = registration.installing;
+
                     if (!newWorker) return;
+
                     
+
                     console.log('[SW] New service worker found');
+
                     
+
                     newWorker.addEventListener('statechange', () => {
+
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+
                             console.log('[SW] New version available');
+
                             showUpdateBanner(registration);
+
                         }
+
                     });
+
                 });
+
             }).catch(error => {
+
                 console.error('[SW] Service Worker registration failed:', error);
+
             });
+
             
+
             // Обработка перезагрузки при обновлении
+
             navigator.serviceWorker.addEventListener('controllerchange', () => {
+
                 if (refreshing) return;
+
                 console.log('[SW] Controller changed - reloading page');
+
                 refreshing = true;
+
                 window.location.reload();
+
             });
+
         }
+
     }
+
+
 
     // Показ баннера обновления
+
     function showUpdateBanner(registration) {
+
         // Удаляем старый баннер если есть
+
         const existingBanner = document.getElementById('updateBanner');
+
         if (existingBanner) {
+
             existingBanner.remove();
+
         }
+
         
+
         const banner = document.createElement('div');
+
         banner.id = 'updateBanner';
+
         banner.className = 'update-banner';
+
         banner.innerHTML = `
+
             <div class="update-banner-content">
+
                 <div class="update-icon">🔄</div>
+
                 <div class="update-text">
+
                     <strong>Доступна новая версия!</strong>
+
                     <div class="update-subtitle">Обновите для получения последних функций</div>
+
                 </div>
+
                 <div class="update-buttons">
+
                     <button class="btn btn-secondary" onclick="dismissUpdateBanner()">Позже</button>
+
                     <button class="btn btn-success" onclick="applyUpdate(registration)">Обновить</button>
+
                 </div>
+
             </div>
+
         `;
+
         
+
         document.body.appendChild(banner);
+
         
+
         // Анимация появления
+
         setTimeout(() => {
+
             banner.classList.add('show');
+
         }, 100);
+
     }
+
+
 
     // Применить обновление
+
     function applyUpdate(registration) {
+
         if (registration.waiting) {
+
             console.log('[SW] Applying update');
+
             registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+
             
+
             // Показываем индикатор загрузки
+
             const banner = document.getElementById('updateBanner');
+
             if (banner) {
+
                 banner.innerHTML = `
+
                     <div class="update-banner-content">
+
                         <div class="update-icon loading">⏳</div>
+
                         <div class="update-text">
+
                             <strong>Обновление...</strong>
+
                             <div class="update-subtitle">Пожалуйста, подождите</div>
+
                         </div>
+
                     </div>
+
                 `;
+
             }
+
         }
+
     }
+
+
 
     // Отклонить обновление
+
     function dismissUpdateBanner() {
+
         const banner = document.getElementById('updateBanner');
+
         if (banner) {
+
             banner.classList.remove('show');
+
             setTimeout(() => {
+
                 banner.remove();
+
             }, 300);
+
         }
+
     }
+
+
 
     // Принудительное обновление (для отладки)
+
     function forceUpdate() {
+
         if ('serviceWorker' in navigator) {
+
             navigator.serviceWorker.getRegistration().then((registration) => {
+
                 if (registration) {
+
                     registration.active.postMessage({ type: 'FORCE_UPDATE' });
+
                     setTimeout(() => {
+
                         window.location.reload();
+
                     }, 1000);
+
                 }
+
             });
+
         }
+
     }
+
+
 
     // Запускаем проверку обновлений
+
     checkForUpdates();
+
 });
+
+
 
 window.addEventListener('beforeinstallprompt', (event) => {
+
     event.preventDefault();
+
     deferredInstallPrompt = event;
 
+
+
     const installButton = document.getElementById('installAppBtn');
+
     if (installButton) {
+
         installButton.classList.add('is-visible');
+
     }
+
 });
+
+
 
 // --- CACHE MANAGEMENT FUNCTIONS ---
 
+
+
 // Показать модальное окно предупреждения об очистке кэша
+
 function showClearCacheWarning() {
+
     const modal = document.getElementById('clearCacheModal');
+
     if (modal) {
+
         modal.classList.add('active');
+
         
+
         // Сбрасываем чекбокс
+
         const checkbox = document.getElementById('confirmCacheClear');
+
         const confirmBtn = document.getElementById('confirmClearCacheBtn');
+
         if (checkbox) checkbox.checked = false;
+
         if (confirmBtn) confirmBtn.disabled = true;
+
         
+
         // Добавляем обработчик для чекбокса
+
         if (checkbox) {
+
             checkbox.onchange = function() {
+
                 if (confirmBtn) {
+
                     confirmBtn.disabled = !this.checked;
+
                 }
+
             };
+
         }
+
     }
+
 }
+
+
 
 // Закрыть модальное окно очистки кэша
+
 function closeClearCacheModal() {
+
     const modal = document.getElementById('clearCacheModal');
+
     if (modal) {
+
         modal.classList.remove('active');
+
     }
+
 }
+
+
 
 // Подтвердить очистку кэша
+
 function confirmClearCache() {
+
     const checkbox = document.getElementById('confirmCacheClear');
+
     if (!checkbox || !checkbox.checked) {
+
         return;
+
     }
+
     
+
     // Показываем индикатор загрузки
+
     const confirmBtn = document.getElementById('confirmClearCacheBtn');
+
     if (confirmBtn) {
+
         confirmBtn.textContent = 'Очистка...';
+
         confirmBtn.disabled = true;
+
     }
+
     
+
     // Выполняем очистку кэша
+
     clearAllCache().then(() => {
+
         // Закрываем модальное окно
+
         closeClearCacheModal();
+
         
+
         // Показываем сообщение об успехе
+
         showSuccessMessage('Кэш успешно очищен! Приложение будет перезагружено...');
+
         
+
         // Перезагружаем страницу через 2 секунды
+
         setTimeout(() => {
+
             window.location.reload();
+
         }, 2000);
+
     }).catch(error => {
+
         console.error('Error clearing cache:', error);
+
         showValidationError('Ошибка при очистке кэша. Попробуйте снова.');
+
         
+
         // Восстанавливаем кнопку
+
         if (confirmBtn) {
+
             confirmBtn.textContent = 'Очистить кэш';
+
             confirmBtn.disabled = false;
+
         }
+
     });
+
 }
+
+
 
 // Полная очистка кэша
+
 async function clearAllCache() {
+
     try {
+
         // 1. Очищаем localStorage
+
         localStorage.clear();
+
         
+
         // 2. Очищаем sessionStorage
+
         sessionStorage.clear();
+
         
+
         // 3. Очищаем Service Worker кэши (только для http/https)
+
         if ('caches' in window && window.location.protocol !== 'file:') {
+
             const cacheNames = await caches.keys();
+
             await Promise.all(
+
                 cacheNames.map(cacheName => caches.delete(cacheName))
+
             );
+
         }
+
         
+
         // 4. Обновляем Service Worker (только для http/https)
+
         if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
+
             try {
+
                 const registration = await navigator.serviceWorker.getRegistration();
+
                 if (registration) {
+
                     await registration.unregister();
+
                 }
+
             } catch (swError) {
+
                 console.warn('Service Worker unregister failed (expected for file://):', swError);
+
             }
+
         }
+
         
+
         // 5. Очищаем IndexedDB если есть
+
         if ('indexedDB' in window) {
+
             try {
+
                 const databases = await indexedDB.databases();
+
                 await Promise.all(
+
                     databases.map(database => indexedDB.deleteDatabase(database.name))
+
                 );
+
             } catch (idbError) {
+
                 console.warn('IndexedDB cleanup failed:', idbError);
+
             }
+
         }
+
         
+
         console.log('All cache cleared successfully');
+
         
+
     } catch (error) {
+
         console.error('Error clearing cache:', error);
+
         throw error;
+
     }
+
 }
+
+
 
 // Проверить статус кэша
+
 async function checkCacheStatus() {
+
     const statusElement = document.getElementById('cacheStatus');
+
     const sizeElement = document.getElementById('cacheSize');
+
     
+
     if (statusElement) statusElement.textContent = 'Проверка...';
+
     if (sizeElement) sizeElement.textContent = 'Расчет...';
+
     
+
     try {
+
         let totalSize = 0;
+
         let cacheCount = 0;
+
         
+
         // Проверяем localStorage
+
         for (let key in localStorage) {
+
             if (localStorage.hasOwnProperty(key)) {
+
                 totalSize += localStorage[key].length + key.length;
+
                 cacheCount++;
+
             }
+
         }
+
         
+
         // Проверяем sessionStorage
+
         for (let key in sessionStorage) {
+
             if (sessionStorage.hasOwnProperty(key)) {
+
                 totalSize += sessionStorage[key].length + key.length;
+
                 cacheCount++;
+
             }
+
         }
+
         
+
         // Проверяем Service Worker кэши (только для http/https)
+
         if ('caches' in window && window.location.protocol !== 'file:') {
+
             try {
+
                 const cacheNames = await caches.keys();
+
                 for (const cacheName of cacheNames) {
+
                     const cache = await caches.open(cacheName);
+
                     const requests = await cache.keys();
+
                     for (const request of requests) {
+
                         const response = await cache.match(request);
+
                         if (response) {
+
                             const responseClone = response.clone();
+
                             const blob = await responseClone.blob();
+
                             totalSize += blob.size;
+
                             cacheCount++;
+
                         }
+
                     }
+
                 }
+
             } catch (cacheError) {
+
                 console.warn('Cache check failed (expected for file://):', cacheError);
+
             }
+
         }
+
         
+
         // Обновляем отображение
+
         if (statusElement) {
+
             statusElement.textContent = `${cacheCount} элементов`;
+
             statusElement.style.color = cacheCount > 0 ? 'var(--primary)' : 'var(--gray)';
+
         }
+
         
+
         if (sizeElement) {
+
             const sizeInMB = (totalSize / (1024 * 1024)).toFixed(2);
+
             sizeElement.textContent = `${sizeInMB} МБ`;
+
             sizeElement.style.color = totalSize > 1024 * 1024 ? '#ef4444' : 'var(--primary)';
+
         }
+
         
+
     } catch (error) {
+
         console.error('Error checking cache status:', error);
+
         if (statusElement) statusElement.textContent = 'Ошибка';
+
         if (sizeElement) sizeElement.textContent = 'Н/Д';
+
     }
+
 }
+
+
 
 // Автоматическая проверка статуса кэша при открытии настроек
+
 function initializeCacheStatus() {
+
     // Проверяем статус при загрузке страницы
+
     setTimeout(() => {
+
         checkCacheStatus();
+
     }, 1000);
+
     
+
     // Обновляем статус каждые 30 секунд
+
     setInterval(() => {
+
         checkCacheStatus();
+
     }, 30000);
+
 }
+
 function restoreHistory() {
+
     const storedTransactions = localStorage.getItem('transactions');
+
     const storedAssets = localStorage.getItem('assets');
+
     const storedLiabilities = localStorage.getItem('liabilities');
 
+
+
     if (storedTransactions) {
+
         transactions = JSON.parse(storedTransactions);
+
     }
+
     if (storedAssets) {
+
         assets = JSON.parse(storedAssets);
+
     }
+
     if (storedLiabilities) {
+
         liabilities = JSON.parse(storedLiabilities);
+
     }
+
+
 
     updateAll();
+
     showRestoreSuccessModal();
+
 }
+
+
 
 function showRestoreSuccessModal() {
+
     const modal = document.getElementById('restoreSuccessModal');
+
     if (modal) {
+
         modal.classList.add('active');
+
     }
+
 }
+
+
 
 function closeRestoreSuccessModal() {
+
     const modal = document.getElementById('restoreSuccessModal');
+
     if (modal) {
+
         modal.classList.remove('active');
+
     }
+
 }
+
+
 
 // --- DATA STRUCTURES ---
+
 let transactions = [];
+
 let assets = [];
+
 let liabilities = [];
+
 let currentLanguage = 'ru';
+
 let currentCurrency = '$';
+
 let currentMonth = new Date();
 
+
+
 // Usage tracking for suggestions
+
 let assetUsageCount = {};
+
 let liabilityUsageCount = {};
 
+
+
 // --- MODAL FUNCTIONS ---
+
 function openAssetModal() {
+
     const modal = document.getElementById('assetModal');
+
     if (modal) {
+
         modal.classList.add('active');
+
         // Set current date
+
         const dateInput = document.getElementById('assetDate');
+
         if (dateInput) {
+
             dateInput.value = new Date().toISOString().split('T')[0];
+
         }
+
     }
+
 }
+
+
 
 function closeAssetModal() {
+
     const modal = document.getElementById('assetModal');
+
     if (modal) {
+
         modal.classList.remove('active');
+
         // Clear form
+
         const form = modal.querySelector('form');
+
         if (form) form.reset();
+
     }
+
 }
+
+
 
 function openLiabilityModal() {
+
     const modal = document.getElementById('liabilityModal');
+
     if (modal) {
+
         modal.classList.add('active');
+
         // Set current date
+
         const dateInput = document.getElementById('liabilityDate');
+
         if (dateInput) {
+
             dateInput.value = new Date().toISOString().split('T')[0];
+
         }
+
     }
+
 }
+
+
 
 function closeLiabilityModal() {
+
     const modal = document.getElementById('liabilityModal');
+
     if (modal) {
+
         modal.classList.remove('active');
+
         // Clear form
+
         const form = modal.querySelector('form');
+
         if (form) form.reset();
+
     }
+
 }
+
+
 
 function openIncomeModal() {
+
     const modal = document.getElementById('incomeModal');
+
     if (modal) {
+
         modal.classList.add('active');
+
         // Set current date
+
         const dateInput = document.getElementById('incomeDate');
+
         if (dateInput) {
+
             dateInput.value = new Date().toISOString().split('T')[0];
+
         }
+
         // Clear amount field
+
         const amountInput = document.getElementById('incomeAmount');
+
         if (amountInput) {
+
             amountInput.value = '';
+
         }
+
     }
+
 }
+
+
 
 function closeIncomeModal() {
+
     const modal = document.getElementById('incomeModal');
+
     if (modal) {
+
         modal.classList.remove('active');
+
         // Clear form
+
         const form = modal.querySelector('form');
+
         if (form) form.reset();
+
     }
+
 }
+
+
 
 function openExpenseModal() {
+
     const modal = document.getElementById('expenseModal');
+
     if (modal) {
+
         modal.classList.add('active');
+
         // Set current date
+
         const dateInput = document.getElementById('expenseDate');
+
         if (dateInput) {
+
             dateInput.value = new Date().toISOString().split('T')[0];
+
         }
+
         // Clear amount field
+
         const amountInput = document.getElementById('expenseAmount');
+
         if (amountInput) {
+
             amountInput.value = '';
+
         }
+
     }
+
 }
+
+
 
 function closeExpenseModal() {
+
     const modal = document.getElementById('expenseModal');
+
     if (modal) {
+
         modal.classList.remove('active');
+
         // Clear form
+
         const form = modal.querySelector('form');
+
         if (form) form.reset();
+
     }
+
 }
+
+
 
 function closeDeleteConfirm() {
+
     const modal = document.getElementById('deleteConfirmModal');
+
     if (modal) {
+
         modal.classList.remove('active');
+
     }
+
 }
+
+
 
 function showValidationError(message) {
+
     // Create a simple toast notification instead of alert
+
     const toast = document.createElement('div');
+
     toast.style.cssText = `
+
         position: fixed;
+
         top: 20px;
+
         right: 20px;
+
         background: #ef4444;
+
         color: white;
+
         padding: 12px 20px;
+
         border-radius: 8px;
+
         border: 2px solid #dc2626;
+
         box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.3);
+
         z-index: 10000;
+
         font-weight: 600;
+
         font-size: 14px;
+
         animation: slideIn 0.3s ease;
+
     `;
+
     toast.textContent = message;
+
     
+
     document.body.appendChild(toast);
+
     
+
     // Auto remove after 3 seconds
+
     setTimeout(() => {
+
         toast.style.animation = 'slideOut 0.3s ease';
+
         setTimeout(() => {
+
             if (toast.parentNode) {
+
                 toast.parentNode.removeChild(toast);
+
             }
+
         }, 300);
+
     }, 3000);
+
 }
+
+
 
 function showSuccessMessage(message) {
+
     // Create a success toast notification
+
     const toast = document.createElement('div');
+
     toast.style.cssText = `
+
         position: fixed;
+
         top: 20px;
+
         right: 20px;
+
         background: #22c55e;
+
         color: white;
+
         padding: 12px 20px;
+
         border-radius: 8px;
+
         border: 2px solid #16a34a;
+
         box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.3);
+
         z-index: 10000;
+
         font-weight: 600;
+
         font-size: 14px;
+
         animation: slideIn 0.3s ease;
+
     `;
+
     toast.textContent = message;
+
     
+
     document.body.appendChild(toast);
+
     
+
     // Auto remove after 3 seconds
+
     setTimeout(() => {
+
         toast.style.animation = 'slideOut 0.3s ease';
+
         setTimeout(() => {
+
             if (toast.parentNode) {
+
                 toast.parentNode.removeChild(toast);
+
             }
+
         }, 300);
+
     }, 3000);
+
 }
+
+
 
 // Add animations for toast notifications
+
 const style = document.createElement('style');
+
 style.textContent = `
+
     @keyframes slideIn {
+
         from {
+
             transform: translateX(100%);
+
             opacity: 0;
+
         }
+
         to {
+
             transform: translateX(0);
+
             opacity: 1;
+
         }
+
     }
+
     
+
     @keyframes slideOut {
+
         from {
+
             transform: translateX(0);
+
             opacity: 1;
+
         }
+
         to {
+
             transform: translateX(100%);
+
             opacity: 0;
+
         }
+
     }
+
 `;
+
 document.head.appendChild(style);
 
+
+
 function showTopUpConfirm(existingAsset, amount, rate) {
+
     // Create modal dynamically
+
     const modal = document.createElement('div');
+
     modal.className = 'modal active';
+
     modal.innerHTML = `
+
         <div class="modal-backdrop"></div>
+
         <div class="modal-content" style="max-width: 400px;">
+
             <div class="modal-header">
+
                 <h2>💰 Пополнение актива</h2>
+
                 <button class="modal-close" onclick="this.closest('.modal').remove()">✕</button>
+
             </div>
+
             <div class="modal-body">
+
                 <div style="text-align: center; margin-bottom: 20px;">
+
                     <div style="font-size: 2rem; margin-bottom: 10px;">💳</div>
+
                     <p style="font-weight: 600; color: var(--dark); margin-bottom: 8px;">
+
                         Актив "${existingAsset.name}" уже существует
+
                     </p>
+
                     <p style="color: var(--gray); font-size: 14px;">
+
                         Текущий баланс: <strong style="color: var(--success);">${formatCurrency(existingAsset.amount)}</strong>
+
                     </p>
+
                     <p style="color: var(--primary); font-size: 14px; margin-top: 8px;">
+
                         Пополнить на <strong>${formatCurrency(amount)}</strong>?
+
                     </p>
+
                 </div>
+
             </div>
+
             <div class="modal-footer">
+
                 <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Отмена</button>
+
                 <button class="btn btn-success" onclick="confirmTopUp(${existingAsset.id}, ${amount})">Пополнить</button>
+
             </div>
+
         </div>
+
     `;
+
     
+
     document.body.appendChild(modal);
+
     
+
     // Add global function for confirmation
+
     window.confirmTopUp = function(assetId, topUpAmount) {
+
         const asset = assets.find(a => a.id === assetId);
+
         if (asset) {
+
             asset.amount += topUpAmount;
+
             
+
             // Create income transaction for top-up
+
             const topUpTransaction = {
+
                 id: Date.now(),
+
                 type: 'income',
+
                 category: 'other',
+
                 description: `Пополнение актива "${asset.name}"`,
+
                 amount: topUpAmount,
+
                 date: new Date().toISOString().split('T')[0]
+
             };
+
             
+
             transactions.push(topUpTransaction);
+
             showSuccessMessage(`Актив "${asset.name}" пополнен на ${formatCurrency(topUpAmount)} и добавлен в доходы`);
+
             
+
             saveData();
+
             updateAll();
+
             closeAssetModal();
+
         }
+
         modal.remove();
+
     };
+
 }
+
+
 
 function closePayLiabilityModal() {
+
     const modal = document.getElementById('payLiabilityModal');
+
     if (modal) {
+
         modal.classList.remove('active');
+
     }
+
 }
 
+
+
 function closeWithdrawAssetModal() {
+
     const modal = document.getElementById('withdrawAssetModal');
+
     if (modal) {
+
         modal.classList.remove('active');
+
     }
+
 }
+
+
+
 
 
 // --- TRANSACTION FUNCTIONS ---
+
 function addAssetTransaction() {
+
     const name = document.getElementById('assetName').value;
+
     const amount = parseFloat(document.getElementById('assetAmount').value);
+
     const rate = parseFloat(document.getElementById('assetRate').value) || 0;
 
+
+
     // Validation
+
     if (!name || !amount || amount <= 0) {
+
         showValidationError('Пожалуйста, заполните все поля корректно');
+
         return;
+
     }
+
+
 
     // Check if we're editing an existing asset
+
     if (window.editingAssetId) {
+
         const asset = assets.find(a => a.id === window.editingAssetId);
+
         if (asset) {
+
             asset.name = name;
+
             asset.amount = amount;
+
             asset.rate = rate;
+
             
+
             closeAssetModal();
+
             resetModal('asset');
+
             updateAll();
+
             saveData();
+
             return;
+
         }
+
     }
+
+
 
     // Check for existing asset with same name
+
     const existingAsset = assets.find(asset => asset.name.toLowerCase() === name.toLowerCase());
+
     
+
     if (existingAsset) {
+
         // Show confirmation to top up existing asset
+
         showTopUpConfirm(existingAsset, amount, rate);
+
     } else {
+
         // Track usage for suggestions
+
         trackAssetUsage(name);
+
         
+
         // Create new asset
+
         const asset = {
+
             id: Date.now(),
+
             name: name,
+
             amount: amount,
+
             rate: rate,
+
             date: new Date().toISOString().split('T')[0]
+
         };
+
+
 
         // Create income transaction for new asset
+
         const assetTransaction = {
+
             id: Date.now() + 1,
+
             type: 'income',
+
             category: 'other',
+
             description: `Создание актива "${name}"`,
+
             amount: amount,
+
             date: new Date().toISOString().split('T')[0]
+
         };
+
+
 
         assets.push(asset);
+
         transactions.push(assetTransaction);
+
         
+
         showSuccessMessage(`Актив "${name}" создан на ${formatCurrency(amount)} и добавлен в доходы`);
+
         
+
         saveData();
+
         updateAll();
+
         closeAssetModal();
+
     }
+
 }
+
+
 
 function addLiabilityTransaction() {
+
     const name = document.getElementById('liabilityName').value;
+
     const amount = parseFloat(document.getElementById('liabilityAmount').value);
+
     const rate = parseFloat(document.getElementById('liabilityRate').value) || 0;
 
+
+
     // Validation
+
     if (!name || !amount || amount <= 0) {
+
         showValidationError('Пожалуйста, заполните все поля корректно');
+
         return;
+
     }
+
+
 
     // Check if we're editing an existing liability
+
     if (window.editingLiabilityId) {
+
         const liability = liabilities.find(l => l.id === window.editingLiabilityId);
+
         if (liability) {
+
             liability.name = name;
+
             liability.amount = amount;
+
             liability.rate = rate;
+
             
+
             closeLiabilityModal();
+
             resetModal('liability');
+
             updateAll();
+
             saveData();
+
             return;
+
         }
+
     }
+
+
 
     // Check for duplicate liability names
+
     const existingLiability = liabilities.find(liability => liability.name.toLowerCase() === name.toLowerCase());
+
     if (existingLiability) {
+
         showValidationError('Пассив с таким названием уже существует.');
+
         return;
+
     }
+
+
 
     // Track usage for suggestions
+
     trackLiabilityUsage(name);
 
+
+
     const liability = {
+
         id: Date.now(),
+
         name: name,
+
         amount: amount,
+
         rate: rate,
+
         paid: 0,
+
         date: new Date().toISOString().split('T')[0]
+
     };
+
+
 
     // Create expense transaction for new liability (this represents the obligation)
+
     const liabilityTransaction = {
+
         id: Date.now() + 1,
+
         type: 'expense',
+
         category: 'liability_payment',
+
         description: `Создание пассива "${name}"`,
+
         amount: amount,
+
         date: new Date().toISOString().split('T')[0]
+
     };
+
+
 
     liabilities.push(liability);
+
     transactions.push(liabilityTransaction);
+
     
+
     showSuccessMessage(`Пассив "${name}" создан на ${formatCurrency(amount)} и добавлен в расходы`);
+
     
+
     saveData();
+
     updateAll();
+
     closeLiabilityModal();
+
 }
+
+
 
 function addIncomeTransaction() {
+
     const type = document.getElementById('incomeType').value;
+
     const description = document.getElementById('incomeDescription').value;
+
     const amount = parseFloat(document.getElementById('incomeAmount').value);
+
     const date = document.getElementById('incomeDate').value;
 
+
+
     if (!amount || amount <= 0) {
+
         alert('Пожалуйста, введите корректную сумму');
+
         return;
+
     }
+
+
 
     // Check if we're editing an existing transaction
+
     if (window.editingTransactionId) {
+
         const transaction = transactions.find(t => t.id === window.editingTransactionId);
+
         if (transaction) {
+
             transaction.category = type;
+
             transaction.description = description || type;
+
             transaction.amount = amount;
+
             transaction.date = date || new Date().toISOString().split('T')[0];
+
             
+
             closeIncomeModal();
+
             resetModal('income');
+
             updateAll();
+
             saveData();
+
             return;
+
         }
+
     }
 
+
+
     const transaction = {
+
         id: Date.now(),
+
         type: 'income',
+
         category: type,
+
         description: description || type,
+
         amount: amount,
+
         date: date || new Date().toISOString().split('T')[0]
+
     };
 
+
+
     transactions.push(transaction);
+
     saveData();
+
     updateAll();
+
     closeIncomeModal();
+
 }
+
+
 
 function addExpenseTransaction() {
+
     const type = document.getElementById('expenseType').value;
+
     const description = document.getElementById('expenseDescription').value;
+
     const amount = parseFloat(document.getElementById('expenseAmount').value);
+
     const date = document.getElementById('expenseDate').value;
 
+
+
     if (!amount || amount <= 0) {
+
         alert('Пожалуйста, введите корректную сумму');
+
         return;
+
     }
+
+
 
     // Check if we're editing an existing transaction
+
     if (window.editingTransactionId) {
+
         const transaction = transactions.find(t => t.id === window.editingTransactionId);
+
         if (transaction) {
+
             transaction.category = type;
+
             transaction.description = description || type;
+
             transaction.amount = amount;
+
             transaction.date = date || new Date().toISOString().split('T')[0];
+
             
+
             closeExpenseModal();
+
             resetModal('expense');
+
             updateAll();
+
             saveData();
+
             return;
+
         }
+
     }
+
+
 
     const transaction = {
+
         id: Date.now(),
+
         type: 'expense',
+
         category: type,
+
         description: description || type,
+
         amount: amount,
+
         date: date || new Date().toISOString().split('T')[0]
+
     };
+
+
 
     transactions.push(transaction);
+
     saveData();
+
     updateAll();
+
     closeExpenseModal();
+
 }
+
+
 
 function deleteAsset(id) {
+
     showDeleteConfirm('актив', 'deleteAsset', id);
+
 }
+
+
 
 function deleteLiability(id) {
+
     showDeleteConfirm('пассив', 'deleteLiability', id);
+
 }
+
+
 
 function editTransaction(type, id) {
+
     if (type === 'income' || type === 'expense') {
+
         const transaction = transactions.find(t => t.id === id);
+
         if (!transaction) return;
+
         
+
         if (type === 'income') {
+
             // Fill income modal with transaction data
+
             document.getElementById('incomeType').value = transaction.category || 'other';
+
             document.getElementById('incomeDescription').value = transaction.description;
+
             document.getElementById('incomeAmount').value = transaction.amount;
+
             document.getElementById('incomeDate').value = transaction.date;
+
             
+
             // Store editing ID
+
             window.editingTransactionId = id;
+
             
+
             // Change modal title and button
+
             const modal = document.getElementById('incomeModal');
+
             modal.querySelector('h2').textContent = '💰 Редактировать доход';
+
             modal.querySelector('.btn-income').textContent = 'Сохранить изменения';
+
             modal.querySelector('.btn-income').onclick = function() {
+
                 updateTransaction(id, 'income');
+
             };
+
             
+
             openIncomeModal();
+
         } else if (type === 'expense') {
+
             // Fill expense modal with transaction data
+
             document.getElementById('expenseType').value = transaction.category || 'other';
+
             document.getElementById('expenseDescription').value = transaction.description;
+
             document.getElementById('expenseAmount').value = transaction.amount;
+
             document.getElementById('expenseDate').value = transaction.date;
+
             
+
             // Store editing ID
+
             window.editingTransactionId = id;
+
             
+
             // Change modal title and button
+
             const modal = document.getElementById('expenseModal');
+
             modal.querySelector('h2').textContent = '💸 Редактировать расход';
+
             modal.querySelector('.btn-expense').textContent = 'Сохранить изменения';
+
             modal.querySelector('.btn-expense').onclick = function() {
+
                 updateTransaction(id, 'expense');
+
             };
+
             
+
             openExpenseModal();
+
         }
+
     } else if (type === 'asset') {
+
         const asset = assets.find(a => a.id === id);
+
         if (!asset) return;
+
         
+
         // Fill asset modal with asset data
+
         document.getElementById('assetName').value = asset.name;
+
         document.getElementById('assetAmount').value = asset.amount;
+
         document.getElementById('assetRate').value = asset.rate || '';
+
         
+
         // Store editing ID
+
         window.editingAssetId = id;
+
         
+
         // Change modal title and button
+
         const modal = document.getElementById('assetModal');
+
         modal.querySelector('h2').textContent = '💳 Редактировать актив';
+
         modal.querySelector('.btn-success').textContent = 'Сохранить изменения';
+
         modal.querySelector('.btn-success').onclick = function() {
+
             updateAsset(id);
+
         };
+
         
+
         openAssetModal();
+
     } else if (type === 'liability') {
+
         const liability = liabilities.find(l => l.id === id);
+
         if (!liability) return;
+
         
+
         // Fill liability modal with liability data
+
         document.getElementById('liabilityName').value = liability.name;
+
         document.getElementById('liabilityAmount').value = liability.amount;
+
         document.getElementById('liabilityRate').value = liability.rate || '';
+
         
+
         // Store editing ID
+
         window.editingLiabilityId = id;
+
         
+
         // Change modal title and button
+
         const modal = document.getElementById('liabilityModal');
+
         modal.querySelector('h2').textContent = '📊 Редактировать пассив';
+
         modal.querySelector('.btn-danger').textContent = 'Сохранить изменения';
+
         modal.querySelector('.btn-danger').onclick = function() {
+
             updateLiability(id);
+
         };
+
         
+
         openLiabilityModal();
+
     }
+
 }
+
+
 
 function updateTransaction(id, type) {
+
     const transaction = transactions.find(t => t.id === id);
+
     if (!transaction) return;
+
     
+
     if (type === 'income') {
+
         transaction.category = document.getElementById('incomeType').value;
+
         transaction.description = document.getElementById('incomeDescription').value;
+
         transaction.amount = parseFloat(document.getElementById('incomeAmount').value);
+
         transaction.date = document.getElementById('incomeDate').value;
+
         
+
         closeIncomeModal();
+
     } else if (type === 'expense') {
+
         transaction.category = document.getElementById('expenseType').value;
+
         transaction.description = document.getElementById('expenseDescription').value;
+
         transaction.amount = parseFloat(document.getElementById('expenseAmount').value);
+
         transaction.date = document.getElementById('expenseDate').value;
+
         
+
         closeExpenseModal();
+
     }
+
     
+
     // Reset modal
+
     resetModal(type);
+
     
+
     // Update displays
+
     updateAll();
+
     saveData();
+
 }
+
+
 
 function updateAsset(id) {
+
     const asset = assets.find(a => a.id === id);
+
     if (!asset) return;
+
     
+
     asset.name = document.getElementById('assetName').value;
+
     asset.amount = parseFloat(document.getElementById('assetAmount').value);
+
     asset.rate = parseFloat(document.getElementById('assetRate').value) || 0;
+
     
+
     closeAssetModal();
+
     resetModal('asset');
+
     updateAll();
+
     saveData();
+
 }
+
+
 
 function updateLiability(id) {
+
     const liability = liabilities.find(l => l.id === id);
+
     if (!liability) return;
+
     
+
     liability.name = document.getElementById('liabilityName').value;
+
     liability.amount = parseFloat(document.getElementById('liabilityAmount').value);
+
     liability.rate = parseFloat(document.getElementById('liabilityRate').value) || 0;
+
     
+
     closeLiabilityModal();
+
     resetModal('liability');
+
     updateAll();
+
     saveData();
+
 }
+
+
 
 function resetModal(type) {
+
     if (type === 'income') {
+
         window.editingTransactionId = null;
+
         const modal = document.getElementById('incomeModal');
+
         modal.querySelector('h2').textContent = '💰 Добавить доход';
+
         modal.querySelector('.btn-income').textContent = 'Добавить';
+
         modal.querySelector('.btn-income').onclick = addIncomeTransaction;
+
         document.getElementById('incomeType').value = 'other';
+
         document.getElementById('incomeDescription').value = '';
+
         document.getElementById('incomeAmount').value = '';
+
         document.getElementById('incomeDate').value = new Date().toISOString().split('T')[0];
+
     } else if (type === 'expense') {
+
         window.editingTransactionId = null;
+
         const modal = document.getElementById('expenseModal');
+
         modal.querySelector('h2').textContent = '💸 Добавить расход';
+
         modal.querySelector('.btn-expense').textContent = 'Добавить';
+
         modal.querySelector('.btn-expense').onclick = addExpenseTransaction;
+
         document.getElementById('expenseType').value = 'other';
+
         document.getElementById('expenseDescription').value = '';
+
         document.getElementById('expenseAmount').value = '';
+
         document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+
     } else if (type === 'asset') {
+
         window.editingAssetId = null;
+
         const modal = document.getElementById('assetModal');
+
         modal.querySelector('h2').textContent = '💳 Добавить/Пополнить Актив';
+
         modal.querySelector('.btn-success').textContent = 'Добавить';
+
         modal.querySelector('.btn-success').onclick = addAssetTransaction;
+
         document.getElementById('assetName').value = '';
+
         document.getElementById('assetAmount').value = '';
+
         document.getElementById('assetRate').value = '';
+
     } else if (type === 'liability') {
+
         window.editingLiabilityId = null;
+
         const modal = document.getElementById('liabilityModal');
+
         modal.querySelector('h2').textContent = '📊 Добавить Пассив';
+
         modal.querySelector('.btn-danger').textContent = 'Добавить';
+
         modal.querySelector('.btn-danger').onclick = addLiabilityTransaction;
+
         document.getElementById('liabilityName').value = '';
+
         document.getElementById('liabilityAmount').value = '';
+
         document.getElementById('liabilityRate').value = '';
+
     }
+
 }
+
+
 
 function deleteTransaction(type, id) {
+
     if (type === 'asset') {
+
         showDeleteConfirm('актив', 'deleteAsset', id);
+
     } else if (type === 'liability') {
+
         showDeleteConfirm('пассив', 'deleteLiability', id);
+
     } else {
+
         showDeleteConfirm('транзакцию', 'deleteTransaction', id);
+
     }
+
 }
+
+
 
 function showDeleteConfirm(itemType, action, id) {
+
     const modal = document.getElementById('deleteConfirmModal');
+
     const titleElement = document.getElementById('deleteConfirmTitle');
+
     const messageElement = document.getElementById('deleteConfirmMessage');
+
     const confirmBtn = document.getElementById('confirmDeleteBtn');
+
     
+
     if (!modal || !titleElement || !messageElement || !confirmBtn) {
+
         console.error('Delete confirm modal elements not found');
+
         showValidationError('Ошибка: модальное окно не найдено');
+
         return;
+
     }
+
     
+
     console.log('Delete confirm:', { itemType, action, id }); // Debug
+
     
+
     // Update modal content
+
     titleElement.textContent = `⚠️ Удаление ${itemType}`;
+
     messageElement.textContent = `Вы уверены, что хотите удалить этот ${itemType}?`;
+
     
+
     // Set up confirm button action
+
     confirmBtn.onclick = function() {
+
         console.log('Confirm delete:', { action, id }); // Debug
+
         
+
         if (action === 'deleteAsset') {
+
             console.log('Deleting asset:', id); // Debug
+
             assets = assets.filter(asset => asset.id !== id);
+
             console.log('Assets after delete:', assets); // Debug
+
         } else if (action === 'deleteLiability') {
+
             console.log('Deleting liability:', id); // Debug
+
             liabilities = liabilities.filter(liability => liability.id !== id);
+
             console.log('Liabilities after delete:', liabilities); // Debug
+
         } else if (action === 'deleteTransaction') {
+
             console.log('Deleting transaction:', id); // Debug
+
             transactions = transactions.filter(transaction => transaction.id !== id);
+
             console.log('Transactions after delete:', transactions); // Debug
+
         }
+
         
+
         saveData();
+
         updateAll();
+
         closeDeleteConfirm();
+
         
+
         // Show success message
+
         showSuccessMessage(`${itemType.charAt(0).toUpperCase() + itemType.slice(1)} успешно удален!`);
+
     };
+
     
+
     // Show modal
+
     modal.classList.add('active');
+
     console.log('Modal shown'); // Debug
+
 }
+
+
 
 function withdrawFromAsset(id) {
+
     const t = translations[currentLanguage];
+
     const asset = assets.find(a => a.id === id);
+
     if (!asset) return;
 
+
+
     const modal = document.getElementById('withdrawAssetModal');
+
     const nameElement = document.getElementById('withdrawAssetName');
+
     const availableElement = document.getElementById('withdrawAssetAvailable');
+
     const amountInput = document.getElementById('withdrawAssetAmountInput');
 
+
+
     if (modal && nameElement && availableElement && amountInput) {
+
         nameElement.textContent = asset.name;
+
         availableElement.textContent = formatCurrency(asset.amount);
+
         amountInput.max = asset.amount;
+
         amountInput.value = '';
+
         
+
         modal.classList.add('active');
+
         
+
         // Update modal title
+
         const modalTitle = document.querySelector('#withdrawAssetModal .modal-title');
+
         if (modalTitle && t.withdrawTitle) {
+
             modalTitle.textContent = t.withdrawTitle;
+
         }
+
         
+
         // Update labels
+
         const nameLabel = document.querySelector('#withdrawAssetModal .info-label');
+
         const availableLabel = document.querySelectorAll('#withdrawAssetModal .info-label')[1];
+
         const amountLabel = document.querySelector('#withdrawAssetModal .form-group label');
+
         const confirmBtn = document.getElementById('confirmWithdrawAssetBtn');
+
         const cancelBtn = document.querySelector('#withdrawAssetModal .modal-footer button:first-child');
+
         
+
         if (nameLabel && t.assetName) nameLabel.textContent = t.assetName;
+
         if (availableLabel && t.available) availableLabel.textContent = t.available;
+
         if (amountLabel && t.withdrawAmount) amountLabel.textContent = t.withdrawAmount;
+
         if (confirmBtn && t.withdraw) confirmBtn.textContent = t.withdraw;
+
         if (cancelBtn && t.cancel) cancelBtn.textContent = t.cancel;
+
         
+
         // Set up confirm button
+
         confirmBtn.onclick = function() {
+
             const amount = parseFloat(amountInput.value);
+
             if (amount && amount > 0 && amount <= asset.amount) {
+
                 asset.amount -= amount;
+
                 
+
                 // Create expense transaction for withdrawal
+
                 const withdrawalTransaction = {
+
                     id: Date.now(),
+
                     type: 'expense',
+
                     category: 'withdrawal',
+
                     description: `Снятие с актива "${asset.name}"`,
+
                     amount: amount,
+
                     date: new Date().toISOString().split('T')[0]
+
                 };
+
                 
+
                 transactions.push(withdrawalTransaction);
+
                 showSuccessMessage(`Снято ${formatCurrency(amount)} с актива "${asset.name}" и добавлено в расходы`);
+
                 
+
                 saveData();
+
                 updateAll();
+
                 closeWithdrawAssetModal();
+
             } else {
+
                 showValidationError('Пожалуйста, введите корректную сумму');
+
             }
+
         };
+
     }
+
 }
+
+
 
 function payLiability(id) {
+
     const t = translations[currentLanguage];
+
     const liability = liabilities.find(l => l.id === id);
+
     if (!liability) return;
 
+
+
     const modal = document.getElementById('payLiabilityModal');
+
     const nameElement = document.getElementById('payLiabilityName');
+
     const amountElement = document.getElementById('payLiabilityAmount');
+
     const paidElement = document.getElementById('payLiabilityPaid');
+
     const remainingElement = document.getElementById('payLiabilityRemaining');
+
     const amountInput = document.getElementById('payLiabilityAmountInput');
 
+
+
     if (modal && nameElement && amountElement && paidElement && remainingElement && amountInput) {
+
         const remaining = liability.amount - liability.paid;
+
         
+
         nameElement.textContent = liability.name;
+
         amountElement.textContent = formatCurrency(liability.amount);
+
         paidElement.textContent = formatCurrency(liability.paid);
+
         remainingElement.textContent = formatCurrency(remaining);
+
         amountInput.max = remaining;
+
         amountInput.value = '';
+
         
+
         modal.classList.add('active');
+
         
+
         // Update modal title
+
         const modalTitle = document.querySelector('#payLiabilityModal .modal-title');
+
         if (modalTitle && t.payTitle) {
+
             modalTitle.textContent = t.payTitle;
+
         }
+
         
+
         // Update labels
+
         const nameLabel = document.querySelector('#payLiabilityModal .info-label');
+
         const originalLabel = document.querySelectorAll('#payLiabilityModal .info-label')[1];
+
         const paidLabel = document.querySelectorAll('#payLiabilityModal .info-label')[2];
+
         const remainingLabel = document.querySelectorAll('#payLiabilityModal .info-label')[3];
+
         const amountLabel = document.querySelector('#payLiabilityModal .form-group label');
+
         const confirmBtn = document.getElementById('confirmPayBtn');
+
         const cancelBtn = document.querySelector('#payLiabilityModal .modal-footer button:first-child');
+
         
+
         if (nameLabel && t.liabilityName) nameLabel.textContent = t.liabilityName;
+
         if (originalLabel && t.originalAmount) originalLabel.textContent = t.originalAmount;
+
         if (paidLabel && t.paidAmount) paidLabel.textContent = t.paidAmount;
+
         if (remainingLabel && t.remainingAmount) remainingLabel.textContent = t.remainingAmount;
+
         if (amountLabel && t.payAmount) amountLabel.textContent = t.payAmount;
+
         if (confirmBtn && t.pay) confirmBtn.textContent = t.pay;
+
         if (cancelBtn && t.cancel) cancelBtn.textContent = t.cancel;
+
         
+
         // Set up confirm button
+
         confirmBtn.onclick = function() {
+
             const amount = parseFloat(amountInput.value);
+
             if (amount && amount > 0 && amount <= remaining) {
+
                 liability.paid += amount;
+
                 
+
                 // Create expense transaction for liability payment
+
                 const paymentTransaction = {
+
                     id: Date.now(),
+
                     type: 'expense',
+
                     category: 'liability_payment',
+
                     description: `Погашение пассива "${liability.name}"`,
+
                     amount: amount,
+
                     date: new Date().toISOString().split('T')[0]
+
                 };
+
                 
+
                 transactions.push(paymentTransaction);
+
                 
+
                 // Check if liability is fully paid
+
                 if (liability.paid >= liability.amount) {
+
                     showSuccessMessage('Пассив полностью погашен! 🎉 Транзакция добавлена в расходы');
+
                 } else {
+
                     showSuccessMessage(`Погашено ${formatCurrency(amount)}. Осталось ${formatCurrency(liability.amount - liability.paid)}. Транзакция добавлена в расходы`);
+
                 }
+
                 
+
                 saveData();
+
                 updateAll();
+
                 closePayLiabilityModal();
+
             } else {
+
                 showValidationError('Пожалуйста, введите корректную сумму');
+
             }
+
         };
+
     }
+
 }
+
+
 
 // --- UPDATE FUNCTIONS ---
+
 function updateAll() {
+
     console.log('Updating all displays...'); // Debug
+
     updateTransactions();
+
     updateAssets();
+
     updateLiabilities();
+
     updateSummary();
+
     saveData();
+
     console.log('All displays updated'); // Debug
+
 }
+
+
 
 function updateTransactions() {
+
     console.log('Updating transactions...'); // Debug
+
     const t = translations[currentLanguage];
+
     const incomeList = document.getElementById('incomeList');
+
     const expenseList = document.getElementById('expenseList');
+
     const totalIncomeElement = document.getElementById('totalIncomeAmount');
+
     const totalExpenseElement = document.getElementById('totalExpenseAmount');
+
     
+
     if (!incomeList || !expenseList || !totalIncomeElement || !totalExpenseElement) {
+
         console.error('Transaction lists or total elements not found');
+
         return;
+
     }
+
+
 
     // Clear lists
+
     incomeList.innerHTML = '';
+
     expenseList.innerHTML = '';
+
     
+
     let totalIncome = 0;
+
     let totalExpense = 0;
+
     
+
     // Get current month transactions
+
     const currentMonthTransactions = getCurrentMonthTransactions();
+
     console.log('Current month transactions:', currentMonthTransactions.length); // Debug
+
     
+
     // Group transactions by category
+
     const incomeCategories = {};
+
     const expenseCategories = {};
+
     
+
     currentMonthTransactions.forEach(transaction => {
+
         const category = transaction.category || transaction.description;
+
         
+
         if (transaction.type === 'income') {
+
             if (!incomeCategories[category]) {
+
                 incomeCategories[category] = {
+
                     amount: 0,
+
                     transactions: []
+
                 };
+
             }
+
             incomeCategories[category].amount += transaction.amount;
+
             incomeCategories[category].transactions.push(transaction);
+
             totalIncome += transaction.amount;
+
         } else {
+
             if (!expenseCategories[category]) {
+
                 expenseCategories[category] = {
+
                     amount: 0,
+
                     transactions: []
+
                 };
+
             }
+
             expenseCategories[category].amount += transaction.amount;
+
             expenseCategories[category].transactions.push(transaction);
+
             totalExpense += transaction.amount;
+
         }
+
     });
+
     
+
     // Create DІЯ style cards for income
+
     Object.entries(incomeCategories).forEach(([category, data]) => {
+
         const card = createDiaCard(category, data.amount, data.transactions[0], 'income', data.transactions.length);
+
         incomeList.appendChild(card);
+
     });
+
     
+
     // Create DІЯ style cards for expenses
+
     Object.entries(expenseCategories).forEach(([category, data]) => {
+
         const card = createDiaCard(category, data.amount, data.transactions[0], 'expense', data.transactions.length);
+
         expenseList.appendChild(card);
+
     });
+
     
+
     // Update totals
+
     totalIncomeElement.textContent = formatCurrency(totalIncome);
+
     totalExpenseElement.textContent = formatCurrency(totalExpense);
+
     
+
     // Show empty states if needed
+
     if (incomeList.children.length === 0) {
+
         incomeList.innerHTML = `
+
             <div class="dia-empty-state">
+
                 <div class="dia-empty-icon">💰</div>
+
                 <div class="dia-empty-text">${t.noIncome}</div>
+
                 <div class="dia-empty-subtext">Добавьте свой первый доход</div>
+
             </div>
+
         `;
+
     }
+
     if (expenseList.children.length === 0) {
+
         expenseList.innerHTML = `
+
             <div class="dia-empty-state">
+
                 <div class="dia-empty-icon">💸</div>
+
                 <div class="dia-empty-text">${t.noExpense}</div>
+
                 <div class="dia-empty-subtext">Добавьте свой первый расход</div>
+
             </div>
+
         `;
+
     }
+
     
+
     console.log('Transactions updated - Income cards:', incomeList.children.length, 'Expense cards:', expenseList.children.length); // Debug
+
 }
+
+
 
 function createDiaCard(title, amount, transaction, type, count = 1) {
+
     const card = document.createElement('div');
+
     card.className = `dia-card ${type}`;
+
     
+
     // Get icon based on type and category
+
     const icon = getCardIcon(type, transaction?.category || title);
+
     
+
     // Format date
+
     const date = transaction?.date ? new Date(transaction.date).toLocaleDateString('ru-RU', { 
+
         day: 'numeric', 
+
         month: 'short' 
+
     }) : '';
+
     
+
     card.innerHTML = `
+
         <div class="dia-card-header">
+
             <div class="dia-card-icon">${icon}</div>
+
             <div class="dia-card-amount ${type}">${formatCurrency(amount)}</div>
+
         </div>
+
         <h3 class="dia-card-title">${title}</h3>
+
         <div class="dia-card-details">
+
             <div class="dia-card-date">
+
                 📅 ${date}
+
                 ${count > 1 ? `• ${count} операций` : ''}
+
             </div>
+
             <div class="dia-card-type">${getCategoryLabel(transaction?.category || title, type)}</div>
+
         </div>
+
         <div class="dia-card-actions">
+
             <button class="dia-card-btn edit" onclick="editTransaction('${type}', ${transaction?.id})">✏️</button>
+
             <button class="dia-card-btn delete" onclick="deleteTransaction('${type}', ${transaction?.id})">🗑️</button>
+
         </div>
+
     `;
+
     
+
     return card;
+
 }
+
+
 
 function getCardIcon(type, category) {
+
     const icons = {
+
         income: {
+
             salary: '💼',
+
             bonus: '🎁',
+
             freelance: '💻',
+
             investment: '📈',
+
             gift: '🎁',
+
             other: '💰'
+
         },
+
         expense: {
+
             food: '🍔',
+
             transport: '🚗',
+
             utilities: '💡',
+
             entertainment: '🎮',
+
             health: '🏥',
+
             shopping: '🛍️',
+
             withdrawal: '💸',
+
             liability_payment: '🏠',
+
             other: '💸'
+
         },
+
         asset: {
+
             'Наличность': '💵',
+
             'Банковский счёт': '🏦',
+
             'Сбережения': '🏆',
+
             'Инвестиции': '📊',
+
             'Депозит': '📋',
+
             'Криптовалюта': '₿',
+
             'Недвижимость': '🏠',
+
             'Автомобиль': '🚗'
+
         },
+
         liability: {
+
             'Ипотека': '🏠',
+
             'Кредит на машину': '🚗',
+
             'Потребительский кредит': '💳',
+
             'Кредитная карта': '💳',
+
             'Налоги': '📄',
+
             'Коммунальные платежи': '💡',
+
             'Долг другу': '🤝',
+
             'Образовательный кредит': '📚'
+
         }
+
     };
+
     
+
     return icons[type]?.[category] || (type === 'income' ? '💰' : type === 'expense' ? '💸' : type === 'asset' ? '💳' : '📊');
+
 }
+
+
 
 function getCategoryLabel(category, type) {
+
     const labels = {
+
         income: {
+
             salary: 'Зарплата',
+
             bonus: 'Бонус',
+
             freelance: 'Фриланс',
+
             investment: 'Инвестиции',
+
             gift: 'Подарок',
+
             other: 'Другое'
+
         },
+
         expense: {
+
             food: 'Продукты',
+
             transport: 'Транспорт',
+
             utilities: 'Коммунальные',
+
             entertainment: 'Развлечения',
+
             health: 'Здоровье',
+
             shopping: 'Покупки',
+
             withdrawal: '💸 Снятие с активов',
+
             liability_payment: '🏠 Погашение пассивов',
+
             other: 'Другое'
+
         }
+
     };
+
     
+
     return labels[type]?.[category] || category;
+
 }
+
+
 
 function createCategoryItem(category, amount, transactions, type) {
+
     const item = document.createElement('div');
+
     item.className = 'category-item';
+
     item.style.cssText = `
+
         background: var(--white);
+
         padding: 12px;
+
         border-radius: var(--radius);
+
         border: 1px solid rgba(0, 0, 0, 0.05);
+
         margin-bottom: 8px;
+
         box-shadow: var(--shadow-sm);
+
         cursor: pointer;
+
         transition: all 0.2s ease;
+
     `;
+
     
+
     const amountColor = type === 'income' ? 'var(--success)' : 'var(--danger)';
+
     const prefix = type === 'income' ? '+' : '-';
+
     const count = transactions.length;
+
     
+
     item.innerHTML = `
+
         <div style="display: flex; justify-content: space-between; align-items: center;">
+
             <div>
+
                 <div style="font-weight: 600; color: var(--dark); font-size: 0.9rem;">
+
                     ${category}
+
                     <span style="color: var(--gray); font-size: 0.8rem; margin-left: 8px;">(${count})</span>
+
                 </div>
+
             </div>
+
             <div style="display: flex; align-items: center; gap: 8px;">
+
                 <div style="color: ${amountColor}; font-weight: 700; font-size: 1rem;">
+
                     ${prefix} ${formatCurrency(amount)}
+
                 </div>
+
             </div>
+
         </div>
+
     `;
+
     
+
     // Add click handler to show details
+
     item.addEventListener('click', () => showCategoryDetails(category, transactions, type));
+
     
+
     // Add hover effect
+
     item.addEventListener('mouseenter', () => {
+
         item.style.transform = 'translateY(-2px)';
+
         item.style.boxShadow = 'var(--shadow)';
+
     });
+
     
+
     item.addEventListener('mouseleave', () => {
+
         item.style.transform = 'translateY(0)';
+
         item.style.boxShadow = 'var(--shadow-sm)';
+
     });
+
     
+
     return item;
+
 }
+
+
 
 function showCategoryDetails(category, transactions, type) {
+
     const modal = document.createElement('div');
+
     modal.className = 'modal active';
+
     
+
     const amountColor = type === 'income' ? 'var(--success)' : 'var(--danger)';
+
     const prefix = type === 'income' ? '+' : '-';
+
     const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+
     
+
     modal.innerHTML = `
+
         <div class="modal-backdrop"></div>
+
         <div class="modal-content" style="max-width: 500px;">
+
             <div class="modal-header">
+
                 <h2>${type === 'income' ? '💰' : '💸'} ${category}</h2>
+
                 <button class="modal-close" onclick="this.closest('.modal').remove()">✕</button>
+
             </div>
+
             <div class="modal-body">
+
                 <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: ${amountColor}20; border-radius: 8px;">
+
                     <div style="font-size: 1.5rem; font-weight: 700; color: ${amountColor};">
+
                         ${prefix} ${formatCurrency(totalAmount)}
+
                     </div>
+
                     <div style="color: var(--gray); font-size: 0.9rem; margin-top: 5px;">
+
                         ${transactions.length} транзакций
+
                     </div>
+
                 </div>
+
                 <div style="max-height: 300px; overflow-y: auto;">
+
                     ${transactions.map(transaction => `
+
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--light-gray);">
+
                             <div>
+
                                 <div style="font-weight: 500; color: var(--dark); font-size: 0.9rem;">
+
                                     ${transaction.description}
+
                                 </div>
+
                                 <div style="color: var(--gray); font-size: 0.8rem;">
+
                                     ${transaction.date}
+
                                 </div>
+
                             </div>
+
                             <div style="display: flex; align-items: center; gap: 8px;">
+
                                 <div style="color: ${amountColor}; font-weight: 600; font-size: 0.9rem;">
+
                                     ${prefix} ${formatCurrency(transaction.amount)}
+
                                 </div>
+
                                 <button class="btn-delete-small" onclick="deleteTransaction(${transaction.id}); this.closest('.modal').remove();" style="background: #ff4757; color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer;">×</button>
+
                             </div>
+
                         </div>
+
                     `).join('')}
+
                 </div>
+
             </div>
+
             <div class="modal-footer">
+
                 <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Закрыть</button>
+
             </div>
+
         </div>
+
     `;
+
     
+
     document.body.appendChild(modal);
+
 }
+
+
 
 function updateAssets() {
+
     console.log('Updating assets...'); // Debug
+
     const assetsList = document.getElementById('assetsList');
+
     const totalElement = document.getElementById('totalAssetsAmount');
+
     
+
     if (!assetsList || !totalElement) {
+
         console.error('Assets list or total element not found');
+
         return;
+
     }
+
+
 
     assetsList.innerHTML = '';
+
     let total = 0;
+
+
 
     if (assets.length === 0) {
+
         assetsList.innerHTML = `
+
             <div class="dia-empty-state">
+
                 <div class="dia-empty-icon">💳</div>
+
                 <div class="dia-empty-text">Нет активов</div>
+
                 <div class="dia-empty-subtext">Добавьте свой первый актив</div>
+
             </div>
+
         `;
+
     } else {
+
         assets.forEach(asset => {
+
             total += asset.amount;
+
             
+
             const card = createAssetCard(asset);
+
             assetsList.appendChild(card);
+
         });
+
     }
 
+
+
     totalElement.textContent = formatCurrency(total);
+
     console.log('Assets updated, count:', assets.length); // Debug
+
 }
+
+
 
 function createAssetCard(asset) {
+
     const card = document.createElement('div');
+
     card.className = 'dia-card asset';
+
     
+
     const icon = getCardIcon('asset', asset.name);
+
     const rate = asset.rate ? `${asset.rate}% годовых` : 'Без ставки';
+
     
+
     card.innerHTML = `
+
         <div class="dia-card-header">
+
             <div class="dia-card-icon">${icon}</div>
+
             <div class="dia-card-amount asset">${formatCurrency(asset.amount)}</div>
+
         </div>
+
         <h3 class="dia-card-title">${asset.name}</h3>
+
         <div class="dia-card-details">
+
             <div class="dia-card-type">${rate}</div>
+
         </div>
+
         <div class="dia-card-actions">
+
             <button class="dia-card-btn withdraw" onclick="withdrawFromAsset(${asset.id})">💸 Снять</button>
+
             <button class="dia-card-btn delete" onclick="deleteAsset(${asset.id})">🗑️</button>
+
         </div>
+
     `;
+
     
+
     return card;
+
 }
+
+
 
 function updateLiabilities() {
+
     console.log('Updating liabilities...'); // Debug
+
     const liabilitiesList = document.getElementById('liabilitiesList');
+
     const totalElement = document.getElementById('totalLiabilitiesAmount');
+
     
+
     if (!liabilitiesList || !totalElement) {
+
         console.error('Liabilities list or total element not found');
+
         return;
+
     }
+
+
 
     liabilitiesList.innerHTML = '';
+
     let total = 0;
 
+
+
     if (liabilities.length === 0) {
+
         liabilitiesList.innerHTML = `
+
             <div class="dia-empty-state">
+
                 <div class="dia-empty-icon">📊</div>
+
                 <div class="dia-empty-text">Нет пассивов</div>
+
                 <div class="dia-empty-subtext">Добавьте свой первый пассив</div>
+
             </div>
+
         `;
+
     } else {
+
         liabilities.forEach(liability => {
+
             const remaining = liability.amount - liability.paid;
+
             total += remaining;
+
             
+
             const card = createLiabilityCard(liability);
+
             liabilitiesList.appendChild(card);
+
         });
+
     }
 
+
+
     totalElement.textContent = formatCurrency(total);
+
     console.log('Liabilities updated, count:', liabilities.length); // Debug
+
 }
 
+
+
 function createLiabilityCard(liability) {
+
     const card = document.createElement('div');
+
     card.className = 'dia-card liability';
+
     
+
     const icon = getCardIcon('liability', liability.name);
+
     const remaining = liability.amount - liability.paid;
+
     const rate = liability.rate ? `${liability.rate}% годовых` : 'Без ставки';
+
     const progressPercent = (liability.paid / liability.amount) * 100;
+
     
+
     card.innerHTML = `
+
         <div class="dia-card-header">
+
             <div class="dia-card-icon">${icon}</div>
+
             <div class="dia-card-amount liability">${formatCurrency(remaining)}</div>
+
         </div>
+
         <h3 class="dia-card-title">${liability.name}</h3>
+
         <div class="dia-card-details">
+
             <div class="dia-card-type">${rate}</div>
+
             <div class="dia-card-date">
+
                 Погашено: ${formatCurrency(liability.paid)} из ${formatCurrency(liability.amount)}
+
             </div>
+
             <div style="background: var(--gray-light); border-radius: 4px; height: 4px; margin-top: 4px;">
+
                 <div style="background: #f59e0b; height: 100%; border-radius: 4px; width: ${progressPercent}%; transition: width 0.3s ease;"></div>
+
             </div>
+
         </div>
+
         <div class="dia-card-actions">
+
             <button class="dia-card-btn pay" onclick="payLiability(${liability.id})">💰 Погасить</button>
+
             <button class="dia-card-btn delete" onclick="deleteLiability(${liability.id})">🗑️</button>
+
         </div>
+
     `;
+
     
+
     return card;
+
 }
+
+
+
 
 
 function getCurrentMonthTransactions() {
+
     const currentMonthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+
     const currentMonthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+
     
+
     return transactions.filter(transaction => {
+
         const transactionDate = new Date(transaction.date);
+
         return transactionDate >= currentMonthStart && transactionDate <= currentMonthEnd;
+
     });
+
 }
 
+
+
 function updateSummary() {
+
     const incomeElement = document.getElementById('totalIncome');
+
     const expenseElement = document.getElementById('totalExpense');
+
     const balanceElement = document.getElementById('totalBalance');
+
     
+
     if (!incomeElement || !expenseElement || !balanceElement) return;
 
+
+
     // Calculate current month transactions
+
     const currentMonthTransactions = getCurrentMonthTransactions();
+
     
+
     let income = 0;
+
     let expense = 0;
 
+
+
     currentMonthTransactions.forEach(transaction => {
+
         if (transaction.type === 'income') {
+
             income += transaction.amount;
+
         } else {
+
             expense += transaction.amount;
+
         }
+
     });
+
+
 
     const balance = income - expense;
 
+
+
     incomeElement.textContent = formatCurrency(income);
+
     expenseElement.textContent = formatCurrency(expense);
+
     balanceElement.textContent = formatCurrency(balance);
+
 }
 
+
+
 // --- UTILITY FUNCTIONS ---
+
 function formatCurrency(amount) {
+
     return `${amount.toFixed(2)} ${currentCurrency}`;
+
 }
+
+
 
 // --- ENHANCED AUTO-BACKUP SYSTEM ---
 
+
+
 // Автоматическое резервное копирование каждые 5 минут
+
 let autoBackupInterval;
 
+
+
 function startAutoBackup() {
+
     // Сразу делаем бэкап
+
     autoBackup();
+
     
+
     // Затем каждые 5 минут
+
     autoBackupInterval = setInterval(autoBackup, 5 * 60 * 1000);
+
 }
+
+
 
 function stopAutoBackup() {
+
     if (autoBackupInterval) {
+
         clearInterval(autoBackupInterval);
+
     }
+
 }
+
+
 
 // Улучшенное автоматическое резервное копирование
+
 function autoBackup() {
+
     const data = {
+
         transactions: transactions,
+
         assets: assets,
+
         liabilities: liabilities,
+
         assetUsageCount: assetUsageCount,
+
         liabilityUsageCount: liabilityUsageCount,
+
         backupDate: new Date().toISOString(),
+
         version: '1.0',
+
         deviceInfo: navigator.userAgent,
+
         lastBackupTime: Date.now()
+
     };
+
     
+
     // Сохраняем в localStorage с меткой времени
+
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
     localStorage.setItem(`cashflow-backup-${timestamp}`, JSON.stringify(data));
+
     
+
     // Обновляем последнюю копию
+
     localStorage.setItem('cashflow-latest-backup', JSON.stringify(data));
+
     
+
     // Сохраняем последние 10 копий
+
     const backups = JSON.parse(localStorage.getItem('cashflow-backups') || '[]');
+
     backups.unshift({
+
         timestamp: timestamp,
+
         data: data
+
     });
+
     
+
     // Оставляем только последние 10 копий
+
     if (backups.length > 10) {
+
         backups.splice(10);
+
     }
+
     
+
     localStorage.setItem('cashflow-backups', JSON.stringify(backups));
+
     
+
     // Показываем уведомление о бэкапе
+
     showBackupNotification();
+
 }
+
+
 
 // Уведомление о бэкапе
+
 function showBackupNotification() {
+
     const notification = document.createElement('div');
+
     notification.style.cssText = `
+
         position: fixed;
+
         top: 20px;
+
         right: 20px;
+
         background: #4caf50;
+
         color: white;
+
         padding: 12px 16px;
+
         border-radius: 8px;
+
         font-size: 14px;
+
         z-index: 10000;
+
         box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+
         transition: all 0.3s ease;
+
     `;
+
     notification.textContent = '💾 Данные сохранены';
+
     
+
     document.body.appendChild(notification);
+
     
+
     setTimeout(() => {
+
         notification.style.opacity = '0';
+
         setTimeout(() => {
+
             document.body.removeChild(notification);
+
         }, 300);
+
     }, 2000);
+
 }
+
+
 
 // Восстановление из автосохранения
+
 function restoreFromAutoBackup() {
+
     const backup = localStorage.getItem('cashflow-latest-backup');
+
     
+
     if (backup) {
+
         if (confirm('Восстановить данные из последнего автосохранения?')) {
+
             const data = JSON.parse(backup);
+
             transactions = data.transactions || [];
+
             assets = data.assets || [];
+
             liabilities = data.liabilities || [];
+
             assetUsageCount = data.assetUsageCount || {};
+
             liabilityUsageCount = data.liabilityUsageCount || {};
+
             
+
             saveData();
+
             updateAll();
+
             alert('✅ Данные восстановлены из резервной копии!');
+
         }
+
     } else {
+
         alert('❌ Резервная копия не найдена');
+
     }
+
 }
+
+
 
 // Экспорт данных в файл
+
 function exportData() {
+
     const data = {
+
         transactions: transactions,
+
         assets: assets,
+
         liabilities: liabilities,
+
         assetUsageCount: assetUsageCount,
+
         liabilityUsageCount: liabilityUsageCount,
+
         exportDate: new Date().toISOString(),
+
         version: '1.0'
+
     };
+
     
+
     const dataStr = JSON.stringify(data, null, 2);
+
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
     
+
     // Создаем ссылку для скачивания
+
     const link = document.createElement('a');
+
     link.href = URL.createObjectURL(dataBlob);
+
     link.download = `cashflow-backup-${new Date().toISOString().split('T')[0]}.json`;
+
     link.click();
+
     
+
     URL.revokeObjectURL(link.href);
+
 }
+
+
 
 // Импорт данных из файла
+
 function importData(file) {
+
     const reader = new FileReader();
+
     
+
     reader.onload = function(e) {
+
         try {
+
             const data = JSON.parse(e.target.result);
+
             
+
             // Проверяем версию и структуру
+
             if (data.version && data.transactions) {
+
                 // Подтверждение импорта
+
                 if (confirm('Импортировать данные? Текущие данные будут заменены.')) {
+
                     transactions = data.transactions || [];
+
                     assets = data.assets || [];
+
                     liabilities = data.liabilities || [];
+
                     assetUsageCount = data.assetUsageCount || {};
+
                     liabilityUsageCount = data.liabilityUsageCount || {};
+
                     
+
                     saveData();
+
                     updateAll();
+
                     alert('✅ Данные успешно импортированы!');
+
                 }
+
             } else {
+
                 alert('❌ Неверный формат файла резервной копии');
+
             }
+
         } catch (error) {
+
             alert('❌ Ошибка при чтении файла: ' + error.message);
+
         }
+
     };
+
     
+
     reader.readAsText(file);
+
 }
+
+
 
 function saveData() {
+
     try {
+
         // Save to localStorage
+
         localStorage.setItem('transactions', JSON.stringify(transactions));
+
         localStorage.setItem('assets', JSON.stringify(assets));
+
         localStorage.setItem('liabilities', JSON.stringify(liabilities));
+
         localStorage.setItem('assetUsageCount', JSON.stringify(assetUsageCount));
+
         localStorage.setItem('liabilityUsageCount', JSON.stringify(liabilityUsageCount));
+
         localStorage.setItem('lastSaveTime', new Date().toISOString());
+
         
+
         // Automatic backup
+
         autoBackup();
+
         
+
         // Show save indicator (subtle)
+
         showSaveIndicator();
+
         
+
         console.log('Данные успешно сохранены локально');
+
     } catch (error) {
+
         console.error('Ошибка сохранения данных:', error);
+
         showDataMessage('Ошибка сохранения данных', 'error');
+
     }
+
 }
+
+
 
 function loadData() {
+
     const storedTransactions = localStorage.getItem('transactions');
+
     const storedAssets = localStorage.getItem('assets');
+
     const storedLiabilities = localStorage.getItem('liabilities');
+
     const storedLanguage = localStorage.getItem('language');
+
     const storedCurrency = localStorage.getItem('currency');
+
     const storedAssetUsage = localStorage.getItem('assetUsageCount');
+
     const storedLiabilityUsage = localStorage.getItem('liabilityUsageCount');
 
+
+
     if (storedTransactions) transactions = JSON.parse(storedTransactions);
+
     if (storedAssets) assets = JSON.parse(storedAssets);
+
     if (storedLiabilities) liabilities = JSON.parse(storedLiabilities);
+
     if (storedLanguage) currentLanguage = storedLanguage;
+
     if (storedCurrency) currentCurrency = storedCurrency;
+
     if (storedAssetUsage) assetUsageCount = JSON.parse(storedAssetUsage);
+
     if (storedLiabilityUsage) liabilityUsageCount = JSON.parse(storedLiabilityUsage);
+
     
+
     // Update suggestions based on usage
+
     updateSuggestions();
+
 }
+
+
 
 function trackAssetUsage(name) {
+
     const normalizedName = name.toLowerCase().trim();
+
     assetUsageCount[normalizedName] = (assetUsageCount[normalizedName] || 0) + 1;
+
     saveData();
+
     updateSuggestions();
+
 }
+
+
 
 function trackLiabilityUsage(name) {
+
     const normalizedName = name.toLowerCase().trim();
+
     liabilityUsageCount[normalizedName] = (liabilityUsageCount[normalizedName] || 0) + 1;
+
     saveData();
+
     updateSuggestions();
+
 }
+
+
 
 function updateSuggestions() {
+
     // Standard options
+
     const standardAssets = [
+
         'Наличность', 'Банковский счёт', 'Сбережения', 'Инвестиции', 
+
         'Депозит', 'Криптовалюта', 'Недвижимость', 'Автомобиль'
+
     ];
+
     
+
     const standardLiabilities = [
+
         'Ипотека', 'Кредит на машину', 'Потребительский кредит', 'Кредитная карта',
+
         'Налоги', 'Коммунальные платежи', 'Долг другу', 'Образовательный кредит'
+
     ];
+
     
+
     // Get frequently used items (exclude standard ones)
+
     const frequentAssets = Object.entries(assetUsageCount)
+
         .filter(([name, count]) => count > 1 && !standardAssets.includes(name))
+
         .sort((a, b) => b[1] - a[1])
+
         .slice(0, 5);
+
     
+
     const frequentLiabilities = Object.entries(liabilityUsageCount)
+
         .filter(([name, count]) => count > 1 && !standardLiabilities.includes(name))
+
         .sort((a, b) => b[1] - a[1])
+
         .slice(0, 5);
+
     
+
     // Update custom suggestion dropdowns
+
     updateCustomSuggestions('assetSuggestionsDropdown', frequentAssets, standardAssets, assetUsageCount);
+
     updateCustomSuggestions('liabilitySuggestionsDropdown', frequentLiabilities, standardLiabilities, liabilityUsageCount);
+
     
+
     // Also update standard datalist as fallback
+
     const assetDatalist = document.getElementById('assetSuggestions');
+
     if (assetDatalist) {
+
         const allAssetOptions = [...frequentAssets.map(([name]) => name), ...standardAssets];
+
         assetDatalist.innerHTML = allAssetOptions
+
             .map(option => `<option value="${option}"></option>`)
+
             .join('');
+
     }
+
     
+
     const liabilityDatalist = document.getElementById('liabilitySuggestions');
+
     if (liabilityDatalist) {
+
         const allLiabilityOptions = [...frequentLiabilities.map(([name]) => name), ...standardLiabilities];
+
         liabilityDatalist.innerHTML = allLiabilityOptions
+
             .map(option => `<option value="${option}"></option>`)
+
             .join('');
+
     }
+
 }
+
+
 
 function updateCustomSuggestions(dropdownId, frequentItems, standardItems, usageCount) {
+
     const dropdown = document.getElementById(dropdownId);
+
     if (!dropdown) return;
+
     
+
     let html = '';
+
     
+
     // Add frequently used items with special styling
+
     frequentItems.forEach(([name, count]) => {
+
         html += `
+
             <div class="suggestion-item frequently-used" data-value="${name}">
+
                 <span>⭐ ${name}</span>
+
                 <span class="suggestion-count">${count}</span>
+
             </div>
+
         `;
+
     });
+
     
+
     // Add separator if there are frequent items
+
     if (frequentItems.length > 0) {
+
         html += '<div class="suggestion-separator" style="padding: 8px 16px; color: var(--gray); font-size: 0.8rem; font-weight: 600; border-bottom: 1px solid var(--light-gray);">Стандартные варианты</div>';
+
     }
+
     
+
     // Add standard items
+
     standardItems.forEach(name => {
+
         const count = usageCount[name.toLowerCase()] || 0;
+
         const countBadge = count > 0 ? `<span class="suggestion-count">${count}</span>` : '';
+
         html += `
+
             <div class="suggestion-item standard" data-value="${name}">
+
                 <span>📋 ${name}</span>
+
                 ${countBadge}
+
             </div>
+
         `;
+
     });
+
     
+
     dropdown.innerHTML = html;
+
     
+
     // Add click handlers
+
     dropdown.querySelectorAll('.suggestion-item').forEach(item => {
+
         item.addEventListener('click', function() {
+
             const value = this.getAttribute('data-value');
+
             const input = dropdown.previousElementSibling;
+
             if (input) {
+
                 input.value = value;
+
                 hideCustomSuggestions(dropdownId);
+
                 input.focus();
+
             }
+
         });
+
     });
+
 }
+
+
 
 function showCustomSuggestions(dropdownId) {
+
     const dropdown = document.getElementById(dropdownId);
+
     const wrapper = dropdown.closest('.input-field-wrapper');
+
     if (dropdown && wrapper) {
+
         dropdown.classList.add('active');
+
         wrapper.classList.add('has-suggestions');
+
     }
+
 }
+
+
 
 function hideCustomSuggestions(dropdownId) {
+
     const dropdown = document.getElementById(dropdownId);
+
     const wrapper = dropdown.closest('.input-field-wrapper');
+
     if (dropdown && wrapper) {
+
         dropdown.classList.remove('active');
+
         wrapper.classList.remove('has-suggestions');
+
     }
+
 }
+
+
 
 function initializeCustomSuggestions() {
+
     // Asset input
+
     const assetInput = document.getElementById('assetName');
+
     const assetDropdown = document.getElementById('assetSuggestionsDropdown');
+
     
+
     if (assetInput && assetDropdown) {
+
         assetInput.addEventListener('focus', () => showCustomSuggestions('assetSuggestionsDropdown'));
+
         assetInput.addEventListener('blur', () => {
+
             setTimeout(() => hideCustomSuggestions('assetSuggestionsDropdown'), 200);
+
         });
+
         assetInput.addEventListener('input', () => filterCustomSuggestions('assetSuggestionsDropdown', assetInput.value));
+
     }
+
     
+
     // Liability input
+
     const liabilityInput = document.getElementById('liabilityName');
+
     const liabilityDropdown = document.getElementById('liabilitySuggestionsDropdown');
+
     
+
     if (liabilityInput && liabilityDropdown) {
+
         liabilityInput.addEventListener('focus', () => showCustomSuggestions('liabilitySuggestionsDropdown'));
+
         liabilityInput.addEventListener('blur', () => {
+
             setTimeout(() => hideCustomSuggestions('liabilitySuggestionsDropdown'), 200);
+
         });
+
         liabilityInput.addEventListener('input', () => filterCustomSuggestions('liabilitySuggestionsDropdown', liabilityInput.value));
+
     }
+
     
+
     // Close dropdowns when clicking outside
+
     document.addEventListener('click', (e) => {
+
         if (!e.target.closest('.input-field-wrapper')) {
+
             document.querySelectorAll('.input-field-suggestions').forEach(dropdown => {
+
                 dropdown.classList.remove('active');
+
                 dropdown.closest('.input-field-wrapper').classList.remove('has-suggestions');
+
             });
+
         }
+
     });
+
 }
+
+
 
 function filterCustomSuggestions(dropdownId, filter) {
+
     const dropdown = document.getElementById(dropdownId);
+
     if (!dropdown) return;
+
     
+
     const items = dropdown.querySelectorAll('.suggestion-item');
+
     const lowerFilter = filter.toLowerCase();
+
     
+
     items.forEach(item => {
+
         const text = item.textContent.toLowerCase();
+
         if (text.includes(lowerFilter)) {
+
             item.style.display = 'flex';
+
         } else {
+
             item.style.display = 'none';
+
         }
+
     });
+
 }
+
+
 
 // --- MONTH NAVIGATION ---
+
 function updateMonthDisplay() {
+
     // Month display is now handled by the calendar dropdown
+
     // This function can be used for other month-related updates if needed
+
 }
+
+
 
 function changeMonth(direction) {
+
     currentMonth.setMonth(currentMonth.getMonth() + direction);
+
     updateMonthDisplay();
+
     updateSummary();
+
 }
+
+
 
 function endMonth() {
+
     const t = translations[currentLanguage];
+
     
+
     // Calculate month results
+
     const currentMonthTransactions = getCurrentMonthTransactions();
+
     let income = 0;
+
     let expense = 0;
 
+
+
     currentMonthTransactions.forEach(transaction => {
+
         if (transaction.type === 'income') {
+
             income += transaction.amount;
+
         } else {
+
             expense += transaction.amount;
+
         }
+
     });
+
+
 
     const balance = income - expense;
+
     const totalAssets = assets.reduce((sum, asset) => sum + asset.amount, 0);
+
     const totalLiabilities = liabilities.reduce((sum, liability) => sum + (liability.amount - liability.paid), 0);
+
     const netWorth = totalAssets - totalLiabilities;
 
+
+
     // Create modal dynamically
+
     const modal = document.createElement('div');
+
     modal.className = 'modal active month-end-modal';
+
     modal.innerHTML = `
+
         <div class="modal-backdrop"></div>
+
         <div class="modal-content">
+
             <div class="modal-header">
+
                 <h2>📅 Месяц завершён</h2>
+
                 <button class="modal-close" onclick="this.closest('.modal').remove()">✕</button>
+
             </div>
+
             <div class="modal-body">
+
                 <div style="display: grid; gap: 12px; margin: 20px 0;">
+
                     <div style="display: flex; justify-content: space-between; padding: 12px; background: #d1fae5; border-radius: 8px;">
+
                         <span>Доходы:</span>
+
                         <strong style="color: #059669;">${formatCurrency(income)}</strong>
+
                     </div>
+
                     <div style="display: flex; justify-content: space-between; padding: 12px; background: #fee2e2; border-radius: 8px;">
+
                         <span>Расходы:</span>
+
                         <strong style="color: #dc2626;">${formatCurrency(expense)}</strong>
+
                     </div>
+
                     <div style="display: flex; justify-content: space-between; padding: 12px; background: #dbeafe; border-radius: 8px;">
+
                         <span>Баланс:</span>
+
                         <strong style="color: #2563eb;">${formatCurrency(balance)}</strong>
+
                     </div>
+
                     <div style="display: flex; justify-content: space-between; padding: 12px; background: #fef3c7; border-radius: 8px;">
+
                         <span>Чистая стоимость:</span>
+
                         <strong style="color: #d97706;">${formatCurrency(netWorth)}</strong>
+
                     </div>
+
                 </div>
+
                 <p style="text-align: center; color: #6b7280; font-size: 14px;">
+
                     ${balance >= 0 ? '🎉 Отличный месяц!' : '💪 В следующем месяце будет лучше!'}
+
                 </p>
+
             </div>
+
             <div class="modal-footer">
+
                 <button class="btn btn-success" onclick="this.closest('.modal').remove()">ОК</button>
+
             </div>
+
         </div>
+
     `;
+
     
+
     document.body.appendChild(modal);
+
 }
+
+
 
 // --- LANGUAGE SUPPORT ---
+
 const translations = {
+
     ru: {
+
         appTitle: '💰 Финансовый Трекер',
+
         today: 'Сегодня',
+
         assetsTitle: '💳 Активы',
+
         liabilitiesTitle: '📊 Пассивы',
+
         addAsset: '➕ Добавить Актив',
+
         addLiability: '➕ Добавить Пассив',
+
         income: 'Доходы',
+
         expense: 'Расходы',
+
         balance: 'Баланс',
+
         addIncome: '➕ Добавить Доход',
+
         addExpense: '➕ Добавить Расход',
+
         noIncome: 'Нет доходов',
+
         noExpense: 'Нет расходов',
+
         noAssets: 'Нет активов',
+
         noLiabilities: 'Нет пассивов',
+
         chooseLanguage: 'Выберите язык:',
+
         chooseCurrency: 'Выберите валюту:',
+
         continue: 'Продолжить',
+
         restore: '💾 Восстановить',
+
         restoreTitle: '✅ История восстановлена',
+
         restoreMessage: 'Ваша история успешно восстановлена из памяти!',
+
         ok: 'ОК',
+
         cancel: 'Отмена',
+
         delete: 'Удалить',
+
         deleteConfirm: '⚠️ Подтверждение удаления',
+
         deleteMessage: 'Вы уверены, что хотите удалить этот элемент?',
+
         deleteNote: 'Это действие нельзя отменить.',
+
         withdraw: 'Снять',
+
         pay: 'Погасить',
+
         withdrawTitle: '💸 Снять с актива',
+
         payTitle: '💰 Погасить пассив',
+
         assetName: 'Название:',
+
         available: 'Доступно:',
+
         withdrawAmount: 'Сумма снятия ($):',
+
         liabilityName: 'Название:',
+
         originalAmount: 'Основная сумма:',
+
         paidAmount: 'Погашено:',
+
         remainingAmount: 'Осталось:',
+
         payAmount: 'Сумма погашения ($):',
+
         incomeExpenseTab: '💰 Доходы/Расходы',
+
         assetsLiabilitiesTab: '💳 Активы/Пассивы'
+
     },
+
     uk: {
+
         appTitle: '💰 Фінансовий Трекер',
+
         today: 'Сьогодні',
+
         assetsTitle: '💳 Активи',
+
         liabilitiesTitle: '📊 Пасиви',
+
         addAsset: '➕ Додати Актив',
+
         addLiability: '➕ Додати Пасив',
+
         income: 'Доходи',
+
         expense: 'Витрати',
+
         balance: 'Баланс',
+
         monthEnd: '📅 Закінчити місяць',
+
         addIncome: '➕ Додати Дохід',
+
         addExpense: '➕ Додати Витрату',
+
         noIncome: 'Немає доходів',
+
         noExpense: 'Немає витрат',
+
         noAssets: 'Немає активів',
+
         noLiabilities: 'Немає пасивів',
+
         chooseLanguage: 'Оберіть мову:',
+
         chooseCurrency: 'Оберіть валюту:',
+
         continue: 'Продовжити',
+
         restore: '💾 Відновити',
+
         restoreTitle: '✅ Історію відновлено',
+
         restoreMessage: 'Ваша історію успішно відновлено з пам\'яті!',
+
         ok: 'ОК',
+
         cancel: 'Скасувати',
+
         delete: 'Видалити',
+
         deleteConfirm: '⚠️ Підтвердження видалення',
+
         deleteMessage: 'Ви впевнені, що хочете видалити цей елемент?',
+
         deleteNote: 'Цю дію неможливо скасувати.',
+
         withdraw: 'Зняти',
+
         pay: 'Погасити',
+
         withdrawTitle: '💸 Зняти з активу',
+
         payTitle: '💰 Погасити пасив',
+
         assetName: 'Назва:',
+
         available: 'Доступно:',
+
         withdrawAmount: 'Сума зняття ($):',
+
         liabilityName: 'Назва:',
+
         originalAmount: 'Основна сума:',
+
         paidAmount: 'Погашено:',
+
         remainingAmount: 'Залишилось:',
+
         payAmount: 'Сума погашення ($):',
+
         incomeExpenseTab: '💰 Доходи/Витрати',
+
         assetsLiabilitiesTab: '💳 Активи/Пасиви'
+
     },
+
     en: {
+
         appTitle: '💰 Financial Tracker',
+
         today: 'Today',
+
         assetsTitle: '💳 Assets',
+
         liabilitiesTitle: '📊 Liabilities',
+
         addAsset: '➕ Add Asset',
+
         addLiability: '➕ Add Liability',
+
         income: 'Income',
+
         expense: 'Expenses',
+
         balance: 'Balance',
+
         monthEnd: '📅 End Month',
+
         addIncome: '➕ Add Income',
+
         addExpense: '➕ Add Expense',
+
         noIncome: 'No income',
+
         noExpense: 'No expenses',
+
         noAssets: 'No assets',
+
         noLiabilities: 'No liabilities',
+
         chooseLanguage: 'Choose language:',
+
         chooseCurrency: 'Choose currency:',
+
         continue: 'Continue',
+
         restore: '💾 Restore',
+
         restoreTitle: '✅ History Restored',
+
         restoreMessage: 'Your history has been successfully restored from memory!',
+
         ok: 'OK',
+
         cancel: 'Cancel',
+
         delete: 'Delete',
+
         deleteConfirm: '⚠️ Delete Confirmation',
+
         deleteMessage: 'Are you sure you want to delete this item?',
+
         deleteNote: 'This action cannot be undone.',
+
         withdraw: 'Withdraw',
+
         pay: 'Pay',
+
         withdrawTitle: '💸 Withdraw from Asset',
+
         payTitle: '💰 Pay Liability',
+
         assetName: 'Name:',
+
         available: 'Available:',
+
         withdrawAmount: 'Withdrawal amount ($):',
+
         liabilityName: 'Name:',
+
         originalAmount: 'Original amount:',
+
         paidAmount: 'Paid:',
+
         remainingAmount: 'Remaining:',
+
         payAmount: 'Payment amount ($):',
+
         incomeExpenseTab: '💰 Income/Expenses',
+
         assetsLiabilitiesTab: '💳 Assets/Liabilities'
+
     }
+
 };
+
+
 
 const currencies = {
+
     '$': { symbol: '$', name: 'Доллар', nameEn: 'Dollar', nameUk: 'Долар' },
+
     '₴': { symbol: '₴', name: 'Гривна', nameEn: 'Hryvnia', nameUk: 'Гривня' },
+
     '€': { symbol: '€', name: 'Евро', nameEn: 'Euro', nameUk: 'Євро' }
+
 };
 
+
+
 function updateLanguage() {
+
     const t = translations[currentLanguage];
+
     const currency = currencies[currentCurrency];
+
     
+
     // Update app title
+
     const appTitle = document.getElementById('appTitle');
+
     if (appTitle && t.appTitle) {
+
         appTitle.textContent = t.appTitle;
+
     }
+
     
+
     // Update all elements with data-i18n attribute
+
     document.querySelectorAll('[data-i18n]').forEach(element => {
+
         const key = element.getAttribute('data-i18n');
+
         if (t[key]) {
+
             element.textContent = t[key];
+
         }
+
     });
+
     
+
     // Update placeholders
+
     document.querySelectorAll('[data-placeholder]').forEach(element => {
+
         const key = element.getAttribute('data-placeholder');
+
         if (t[key]) {
+
             element.placeholder = t[key];
+
         }
+
     });
+
     
+
     // Update currency symbols in all amounts
+
     updateCurrencySymbols();
+
     
+
     // Update splash screen
+
     updateSplashScreen();
+
     
+
     // Update modal titles and content
+
     updateModalContent();
+
 }
+
+
 
 function updateCurrencySymbols() {
+
     const currency = currencies[currentCurrency];
+
     document.querySelectorAll('.amount, .total-amount, .asset-item-amount, .liability-item-amount').forEach(element => {
+
         const text = element.textContent;
+
         const amount = parseFloat(text.replace(/[^0-9.-]/g, ''));
+
         if (!isNaN(amount)) {
+
             element.textContent = formatCurrency(amount);
+
         }
+
     });
+
 }
+
+
 
 function updateSplashScreen() {
+
     const t = translations[currentLanguage];
+
     const currency = currencies[currentCurrency];
+
     
+
     // Update splash labels
+
     const splashLabels = document.querySelectorAll('.splash-label');
+
     splashLabels.forEach((label, index) => {
+
         if (index === 0 && t.chooseLanguage) {
+
             label.textContent = t.chooseLanguage;
+
         } else if (index === 1 && t.chooseCurrency) {
+
             label.textContent = t.chooseCurrency;
+
         }
+
     });
+
     
+
     // Update splash button
+
     const splashBtn = document.getElementById('splashContinueBtn');
+
     if (splashBtn && t.continue) {
+
         splashBtn.textContent = t.continue;
+
     }
+
     
+
     // Update splash title
+
     const splashTitle = document.querySelector('.splash-title');
+
     if (splashTitle && t.appTitle) {
+
         splashTitle.textContent = t.appTitle;
+
     }
+
     
+
     // Update currency options
+
     const currencySelect = document.getElementById('splashCurrency');
+
     if (currencySelect) {
+
         currencySelect.innerHTML = '';
+
         Object.keys(currencies).forEach(key => {
+
             const option = document.createElement('option');
+
             const curr = currencies[key];
+
             option.value = key;
+
             if (currentLanguage === 'ru') {
+
                 option.textContent = `${curr.name} (${curr.symbol})`;
+
             } else if (currentLanguage === 'uk') {
+
                 option.textContent = `${curr.nameUk} (${curr.symbol})`;
+
             } else {
+
                 option.textContent = `${curr.nameEn} (${curr.symbol})`;
+
             }
+
             currencySelect.appendChild(option);
+
         });
+
         currencySelect.value = currentCurrency;
+
     }
+
 }
+
+
 
 function updateModalContent() {
+
     const t = translations[currentLanguage];
+
     
+
     // Update restore modal
+
     const restoreTitle = document.querySelector('#restoreSuccessModal .modal-title');
+
     const restoreMessage = document.querySelector('#restoreSuccessModal .modal-body p');
+
     const restoreBtn = document.querySelector('#restoreSuccessModal .modal-footer button');
+
     
+
     if (restoreTitle && t.restoreTitle) restoreTitle.textContent = t.restoreTitle;
+
     if (restoreMessage && t.restoreMessage) restoreMessage.textContent = t.restoreMessage;
+
     if (restoreBtn && t.ok) restoreBtn.textContent = t.ok;
+
     
+
     // Update delete confirm modal
+
     const deleteTitle = document.querySelector('#deleteConfirmModal .modal-title');
+
     const deleteMessage = document.querySelector('#deleteConfirmModal .modal-body p');
+
     const deleteNote = document.querySelector('#deleteConfirmModal .modal-body p:last-child');
+
     const deleteBtn = document.querySelector('#deleteConfirmModal .modal-footer button:last-child');
+
     const cancelBtn = document.querySelector('#deleteConfirmModal .modal-footer button:first-child');
+
     
+
     if (deleteTitle && t.deleteConfirm) deleteTitle.textContent = t.deleteConfirm;
+
     if (deleteMessage && t.deleteMessage) deleteMessage.textContent = t.deleteMessage;
+
     if (deleteNote && t.deleteNote) deleteNote.textContent = t.deleteNote;
+
     if (deleteBtn && t.delete) deleteBtn.textContent = t.delete;
+
     if (cancelBtn && t.cancel) cancelBtn.textContent = t.cancel;
+
 }
 
+
+
 // Settings modal functions
+
 function openSettingsModal() {
+
     const modal = document.getElementById('settingsModal');
+
     if (modal) {
+
         modal.classList.add('active');
+
         document.body.style.overflow = 'hidden';
+
         // Load current settings
+
         loadSettingsValues();
+
         // Update data section info
+
         updateDataSection();
+
     }
+
 }
+
+
 
 function closeSettingsModal() {
     const modal = document.getElementById('settingsModal');
@@ -4062,317 +7970,614 @@ function closeSettingsModal() {
 }
 
 // Settings button event listener
-document.addEventListener('DOMContentLoaded', () => {
-    const settingsBtn = document.getElementById('settingsBtn');
-    if (settingsBtn) {
-        settingsBtn.addEventListener('click', openSettingsModal);
-    }
-    
-    // Close modal on backdrop click
-    const settingsModal = document.getElementById('settingsModal');
-    if (settingsModal) {
-        settingsModal.addEventListener('click', (e) => {
-            if (e.target === settingsModal || e.target.classList.contains('modal-backdrop')) {
-                closeSettingsModal();
-            }
-        });
-    }
-});
+const settingsBtn = document.getElementById('settingsBtn');
+if (settingsBtn) {
+    settingsBtn.addEventListener('click', openSettingsModal);
+}
+
+// Close modal on backdrop click
+const settingsModal = document.getElementById('settingsModal');
+if (settingsModal) {
+    settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal || e.target.classList.contains('modal-backdrop')) {
+            closeSettingsModal();
+        }
+    });
+}
+
+
 
 // Load current settings into modal
+
 function loadSettingsValues() {
+
     const settingsLanguage = document.getElementById('settingsLanguage');
+
     const settingsCurrency = document.getElementById('settingsCurrency');
+
     
+
     if (settingsLanguage) {
+
         settingsLanguage.value = currentLanguage;
+
     }
+
     if (settingsCurrency) {
+
         settingsCurrency.value = currentCurrency;
+
     }
+
 }
+
+
 
 // Apply language and currency settings
+
 function applyLanguageSettings() {
+
     const settingsLanguage = document.getElementById('settingsLanguage');
+
     const settingsCurrency = document.getElementById('settingsCurrency');
+
     
+
     if (settingsLanguage && settingsCurrency) {
+
         const newLanguage = settingsLanguage.value;
+
         const newCurrency = settingsCurrency.value;
+
         
+
         // Update global variables
+
         currentLanguage = newLanguage;
+
         currentCurrency = newCurrency;
+
         
+
         // Save to localStorage
+
         localStorage.setItem('language', currentLanguage);
+
         localStorage.setItem('currency', currentCurrency);
+
         
+
         // Update UI
+
         updateLanguage();
+
         updateCurrencySymbols();
+
         updateModalContent();
+
         
+
         // Show success message
+
         showSettingsSuccess();
+
         
+
         // Close modal after a short delay
+
         setTimeout(() => {
+
             closeSettingsModal();
+
         }, 1500);
+
     }
+
 }
+
+
 
 // Show success message for settings
+
 function showSettingsSuccess() {
+
     const settingsSection = document.querySelector('.settings-section:last-child');
+
     if (settingsSection) {
+
         const successMsg = document.createElement('div');
+
         successMsg.className = 'settings-success';
+
         successMsg.textContent = 'Настройки успешно применены!';
+
         successMsg.style.cssText = `
+
             background: var(--success-light);
+
             color: var(--success);
+
             padding: 8px 12px;
+
             border-radius: 6px;
+
             margin-top: 12px;
+
             font-size: 0.9rem;
+
             text-align: center;
+
         `;
+
         
+
         settingsSection.appendChild(successMsg);
+
         
+
         // Remove message after 2 seconds
+
         setTimeout(() => {
+
             if (successMsg.parentNode) {
+
                 successMsg.parentNode.removeChild(successMsg);
+
             }
+
         }, 2000);
+
     }
+
 }
+
+
 
 // Export data to JSON file
+
 function exportData() {
+
     const exportData = {
+
         version: '1.0',
+
         exportDate: new Date().toISOString(),
+
         language: currentLanguage,
+
         currency: currentCurrency,
+
         transactions: transactions,
+
         assets: assets,
+
         liabilities: liabilities,
+
         assetUsageCount: assetUsageCount,
+
         liabilityUsageCount: liabilityUsageCount
+
     };
+
     
+
     const dataStr = JSON.stringify(exportData, null, 2);
+
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
     
+
     const link = document.createElement('a');
+
     link.href = URL.createObjectURL(dataBlob);
+
     link.download = `cashflow-backup-${new Date().toISOString().split('T')[0]}.json`;
+
     link.click();
+
     
+
     // Show success message
+
     showDataMessage('Данные успешно экспортированы!', 'success');
+
 }
+
+
 
 // Import data from JSON file
+
 function importData(event) {
+
     const file = event.target.files[0];
+
     if (!file) return;
+
     
+
     const reader = new FileReader();
+
     reader.onload = function(e) {
+
         try {
+
             const importedData = JSON.parse(e.target.result);
+
             
+
             // Validate data structure
+
             if (!importedData.transactions || !importedData.assets || !importedData.liabilities) {
+
                 throw new Error('Неверный формат файла');
+
             }
+
             
+
             // Confirm import
+
             if (confirm('Импортировать данные? Это заменит все текущие данные.')) {
+
                 // Import data
+
                 transactions = importedData.transactions || [];
+
                 assets = importedData.assets || [];
+
                 liabilities = importedData.liabilities || [];
+
                 assetUsageCount = importedData.assetUsageCount || {};
+
                 liabilityUsageCount = importedData.liabilityUsageCount || {};
+
                 
+
                 if (importedData.language) {
+
                     currentLanguage = importedData.language;
+
                     localStorage.setItem('language', currentLanguage);
+
                 }
+
                 
+
                 if (importedData.currency) {
+
                     currentCurrency = importedData.currency;
+
                     localStorage.setItem('currency', currentCurrency);
+
                 }
+
                 
+
                 // Save and update UI
+
                 saveData();
+
                 updateLanguage();
+
                 updateCurrencySymbols();
+
                 updateTransactions();
+
                 updateAssets();
+
                 updateLiabilities();
+
                 updateSummary();
+
                 
+
                 // Show success message
+
                 showDataMessage('Данные успешно импортированы!', 'success');
+
                 
+
                 // Close settings modal
+
                 setTimeout(() => {
+
                     closeSettingsModal();
+
                 }, 1500);
+
             }
+
         } catch (error) {
+
             showDataMessage('Ошибка при импорте: ' + error.message, 'error');
+
         }
+
     };
+
     
+
     reader.readAsText(file);
+
     
+
     // Reset file input
+
     event.target.value = '';
+
 }
+
+
 
 // Show save indicator
+
 function showSaveIndicator() {
+
     // Remove existing indicator
+
     const existing = document.querySelector('.save-indicator');
+
     if (existing) {
+
         existing.remove();
+
     }
+
     
+
     // Create indicator
+
     const indicator = document.createElement('div');
+
     indicator.className = 'save-indicator';
+
     indicator.innerHTML = '💾 Сохранено';
+
     indicator.style.cssText = `
+
         position: fixed;
+
         top: 20px;
+
         right: 20px;
+
         background: var(--success);
+
         color: white;
+
         padding: 8px 16px;
+
         border-radius: 20px;
+
         font-size: 0.85rem;
+
         z-index: 10000;
+
         opacity: 0;
+
         transform: translateY(-10px);
+
         transition: all 0.3s ease;
+
     `;
+
     
+
     document.body.appendChild(indicator);
+
     
+
     // Show indicator
+
     setTimeout(() => {
+
         indicator.style.opacity = '1';
+
         indicator.style.transform = 'translateY(0)';
+
     }, 100);
+
     
+
     // Hide indicator
+
     setTimeout(() => {
+
         indicator.style.opacity = '0';
+
         indicator.style.transform = 'translateY(-10px)';
+
         setTimeout(() => {
+
             if (indicator.parentNode) {
+
                 indicator.parentNode.removeChild(indicator);
+
             }
+
         }, 300);
+
     }, 2000);
+
 }
+
+
 
 // Update data management section with save info
+
 function updateDataSection() {
+
     const dataSection = document.querySelector('.settings-section:nth-child(2)');
+
     if (dataSection) {
+
         const lastSaveTime = localStorage.getItem('lastSaveTime');
+
         const infoDiv = dataSection.querySelector('.settings-info');
+
         
+
         if (infoDiv && lastSaveTime) {
+
             const saveDate = new Date(lastSaveTime);
+
             const formattedDate = saveDate.toLocaleString('ru-RU', {
+
                 day: '2-digit',
+
                 month: '2-digit',
+
                 year: 'numeric',
+
                 hour: '2-digit',
+
                 minute: '2-digit'
+
             });
+
             
+
             infoDiv.innerHTML = `
+
                 <small>Данные автоматически сохраняются локально на устройстве</small><br>
+
                 <small>Последнее сохранение: ${formattedDate}</small>
+
             `;
+
         }
+
     }
+
 }
+
+
 
 // Show data operation message
+
 function showDataMessage(message, type) {
+
     const dataSection = document.querySelector('.settings-section:nth-child(2)'); // Data management section
+
     if (dataSection) {
+
         const existingMsg = dataSection.querySelector('.data-message');
+
         if (existingMsg) {
+
             existingMsg.remove();
+
         }
+
         
+
         const msg = document.createElement('div');
+
         msg.className = 'data-message';
+
         msg.textContent = message;
+
         
+
         const bgColor = type === 'success' ? 'var(--success-light)' : 'var(--danger-light)';
+
         const textColor = type === 'success' ? 'var(--success)' : 'var(--danger)';
+
         
+
         msg.style.cssText = `
+
             background: ${bgColor};
+
             color: ${textColor};
+
             padding: 8px 12px;
+
             border-radius: 6px;
+
             margin-top: 12px;
+
             font-size: 0.9rem;
+
             text-align: center;
+
         `;
+
         
+
         dataSection.appendChild(msg);
+
         
+
         // Remove message after 3 seconds
+
         setTimeout(() => {
+
             if (msg.parentNode) {
+
                 msg.parentNode.removeChild(msg);
+
             }
+
         }, 3000);
+
     }
+
 }
 
+
+
 // Auto-save data periodically
+
 function setupAutoSave() {
+
     // Save data every 30 seconds
+
     setInterval(() => {
+
         saveData();
+
     }, 30000);
+
     
+
     // Save data when page is about to unload
+
     window.addEventListener('beforeunload', () => {
+
         saveData();
+
     });
+
     
+
     // Save data when page becomes hidden (mobile app switching)
+
     document.addEventListener('visibilitychange', () => {
+
         if (document.hidden) {
+
             saveData();
+
         }
+
     });
+
     
+
     // Save data when app loses focus (mobile)
+
     window.addEventListener('blur', () => {
+
         saveData();
+
     });
+
     
+
     console.log('Автосохранение настроено');
+
 }
+
+
 

@@ -207,22 +207,22 @@
                                             <tr class="category-row" data-category="cash">
                                                 <td class="category-name" data-category="cash">Наличные</td>
                                                 <td class="category-amount" onclick="showEditOptions('assets', 'cash', this)">0 $</td>
-                                                <td class="category-rate" onclick="showEditRateOptions('assets', 'cash', this)">0%</td>
+                                                <td class="category-rate">0%</td>
                                             </tr>
                                             <tr class="category-row" data-category="bank">
                                                 <td class="category-name" data-category="bank">Банковский счет</td>
                                                 <td class="category-amount" onclick="showEditOptions('assets', 'bank', this)">0 $</td>
-                                                <td class="category-rate" onclick="showEditRateOptions('assets', 'bank', this)">0%</td>
+                                                <td class="category-rate">0%</td>
                                             </tr>
                                             <tr class="category-row" data-category="savings">
                                                 <td class="category-name" data-category="savings">Сбережения</td>
                                                 <td class="category-amount" onclick="showEditOptions('assets', 'savings', this)">0 $</td>
-                                                <td class="category-rate" onclick="showEditRateOptions('assets', 'savings', this)">0%</td>
+                                                <td class="category-rate">0%</td>
                                             </tr>
                                             <tr class="category-row" data-category="investments">
                                                 <td class="category-name" data-category="investments">Инвестиции</td>
                                                 <td class="category-amount" onclick="showEditOptions('assets', 'investments', this)">0 $</td>
-                                                <td class="category-rate" onclick="showEditRateOptions('assets', 'investments', this)">0%</td>
+                                                <td class="category-rate">0%</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -281,22 +281,22 @@
                                             <tr class="category-row" data-category="mortgage">
                                                 <td class="category-name" data-category="mortgage">Ипотека</td>
                                                 <td class="category-amount" onclick="showEditOptions('liabilities', 'mortgage', this)">0 $</td>
-                                                <td class="category-rate" onclick="showEditRateOptions('liabilities', 'mortgage', this)">0%</td>
+                                                <td class="category-rate">0%</td>
                                             </tr>
                                             <tr class="category-row" data-category="car_loan">
                                                 <td class="category-name" data-category="car_loan">Автокредит</td>
                                                 <td class="category-amount" onclick="showEditOptions('liabilities', 'car_loan', this)">0 $</td>
-                                                <td class="category-rate" onclick="showEditRateOptions('liabilities', 'car_loan', this)">0%</td>
+                                                <td class="category-rate">0%</td>
                                             </tr>
                                             <tr class="category-row" data-category="consumer_loan">
                                                 <td class="category-name" data-category="consumer_loan">Потребительский кредит</td>
                                                 <td class="category-amount" onclick="showEditOptions('liabilities', 'consumer_loan', this)">0 $</td>
-                                                <td class="category-rate" onclick="showEditRateOptions('liabilities', 'consumer_loan', this)">0%</td>
+                                                <td class="category-rate">0%</td>
                                             </tr>
                                             <tr class="category-row" data-category="credit_card">
                                                 <td class="category-name" data-category="credit_card">Кредитная карта</td>
                                                 <td class="category-amount" onclick="showEditOptions('liabilities', 'credit_card', this)">0 $</td>
-                                                <td class="category-rate" onclick="showEditRateOptions('liabilities', 'credit_card', this)">0%</td>
+                                                <td class="category-rate">0%</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -567,44 +567,6 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeEditAmountModal()">Отмена</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ПРОЦЕНТНОЙ СТАВКИ -->
-    <div id="editRateModal" class="modal">
-        <div class="modal-backdrop" onclick="closeEditRateModal()"></div>
-        <div class="modal-content edit-rate-modal">
-            <div class="modal-header">
-                <h2 id="editRateTitle">Редактирование процентной ставки</h2>
-                <button class="modal-close" onclick="closeEditRateModal()">✕</button>
-            </div>
-            <div class="modal-body">
-                <div class="edit-info">
-                    <div class="info-row">
-                        <span class="info-label">Категория:</span>
-                        <span class="info-value" id="editRateCategoryName">-</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Текущая ставка:</span>
-                        <span class="info-value" id="editRateCurrentRate">0%</span>
-                    </div>
-                </div>
-                
-                <div class="edit-form">
-                    <label for="editNewRate">Новая процентная ставка (%):</label>
-                    <input type="number" id="editNewRate" class="input-field" placeholder="0.00" step="0.01" min="0" max="100">
-                </div>
-                
-                <div class="edit-options">
-                    <button class="edit-option-btn" id="replaceRateBtn" onclick="applyRateEdit('replace')">
-                        <span class="edit-option-title">Заменить ставку</span>
-                        <span class="edit-option-desc">5% → 7.5% (установить новую ставку)</span>
-                    </button>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeEditRateModal()">Отмена</button>
             </div>
         </div>
     </div>
