@@ -27,12 +27,12 @@ function adjustMobileHeights() {
             
             if (viewportWidth <= 480) {
                 // Small phones
-                containerHeight = viewportHeight - 100;
-                cardHeight = Math.max(320, viewportHeight - 220);
+                containerHeight = viewportHeight - 70;
+                cardHeight = Math.max(400, viewportHeight - 150);
             } else {
                 // Tablets and large phones
-                containerHeight = viewportHeight - 120;
-                cardHeight = Math.max(380, viewportHeight - 240);
+                containerHeight = viewportHeight - 80;
+                cardHeight = Math.max(450, viewportHeight - 160);
             }
             
             // Apply heights

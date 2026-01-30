@@ -1698,52 +1698,52 @@ body {
 /* Mobile Responsive Styles */
 @media (max-width: 768px) {
     .container {
-        padding: 8px;
+        padding: 4px;
     }
     
     .dia-container {
-        height: calc(100vh - 120px);
-        margin: 8px;
+        height: calc(100vh - 80px);
+        margin: 4px;
     }
     
     .dia-panel {
-        padding: 12px;
+        padding: 8px;
     }
     
     .panel-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 8px;
-        margin-bottom: 12px;
+        gap: 6px;
+        margin-bottom: 8px;
     }
     
     .panel-header h2 {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
     }
     
     .total-amount {
-        font-size: 1rem;
+        font-size: 0.95rem;
         align-self: flex-end;
     }
     
     .flip-card-container {
-        height: calc(100vh - 240px);
-        margin-bottom: 12px;
-        min-height: 380px;
+        height: calc(100vh - 160px);
+        margin-bottom: 8px;
+        min-height: 450px;
     }
     
     .card-header {
-        padding: 10px 14px;
-        height: 45px;
+        padding: 8px 12px;
+        height: 40px;
     }
     
     .card-header h3 {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
     }
     
     .table-container {
-        padding: 10px;
-        height: calc(100% - 45px);
+        padding: 8px;
+        height: calc(100% - 40px);
     }
     
     .categories-table {
@@ -1776,26 +1776,26 @@ body {
     }
     
     .back-buttons {
-        padding: 16px;
-        grid-template-columns: 1fr;
-        gap: 12px;
+        padding: 12px;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
     }
     
     .back-btn {
-        padding: 16px 12px;
-        min-height: 65px;
-        flex-direction: row;
-        justify-content: flex-start;
-        gap: 12px;
+        padding: 12px 8px;
+        min-height: 55px;
+        flex-direction: column;
+        justify-content: center;
+        gap: 4px;
     }
     
     .back-btn .icon {
-        font-size: 1.4rem;
-        min-width: 24px;
+        font-size: 1.2rem;
+        min-width: auto;
     }
     
     .back-btn .text {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
     }
     
     /* Modal adjustments */
@@ -1855,8 +1855,8 @@ body {
     
     /* Navigation adjustments */
     .dia-nav {
-        padding: 6px;
-        gap: 3px;
+        padding: 4px;
+        gap: 2px;
     }
     
     .dia-nav-item {
@@ -1892,34 +1892,34 @@ body {
 
 @media (max-width: 480px) {
     .container {
-        padding: 4px;
+        padding: 2px;
     }
     
     .dia-container {
-        margin: 4px;
-        height: calc(100vh - 100px);
+        margin: 2px;
+        height: calc(100vh - 70px);
     }
     
     .dia-panel {
-        padding: 8px;
+        padding: 6px;
     }
     
     .panel-header {
-        gap: 6px;
-        margin-bottom: 8px;
+        gap: 4px;
+        margin-bottom: 6px;
     }
     
     .panel-header h2 {
-        font-size: 1.1rem;
+        font-size: 1rem;
     }
     
     .total-amount {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
     }
     
     .flip-card-container {
-        height: calc(100vh - 220px);
-        min-height: 320px;
+        height: calc(100vh - 150px);
+        min-height: 400px;
     }
     
     .categories-table {
@@ -1950,17 +1950,23 @@ body {
         padding: 4px 6px;
     }
     
+    .back-buttons {
+        padding: 10px;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+    
     .back-btn {
-        padding: 14px 10px;
-        min-height: 60px;
+        padding: 10px 6px;
+        min-height: 50px;
     }
     
     .back-btn .icon {
-        font-size: 1.3rem;
+        font-size: 1.1rem;
     }
     
     .back-btn .text {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
     }
     
     .modal-content {
@@ -2014,16 +2020,16 @@ body {
 /* Landscape orientation */
 @media (max-height: 600px) and (orientation: landscape) {
     .dia-container {
-        height: calc(100vh - 80px);
+        height: calc(100vh - 60px);
     }
     
     .flip-card-container {
-        height: calc(100vh - 200px);
-        min-height: 200px;
+        height: calc(100vh - 140px);
+        min-height: 250px;
     }
     
     .card-header {
-        padding: 8px 10px;
+        padding: 6px 10px;
         height: 35px;
     }
     
@@ -2032,7 +2038,7 @@ body {
     }
     
     .table-container {
-        padding: 8px;
+        padding: 6px;
         height: calc(100% - 35px);
     }
     
@@ -2050,13 +2056,14 @@ body {
     }
     
     .back-buttons {
-        padding: 12px;
-        gap: 8px;
+        padding: 10px;
+        gap: 6px;
+        grid-template-columns: 1fr 1fr;
     }
     
     .back-btn {
-        padding: 12px 8px;
-        min-height: 50px;
+        padding: 8px 6px;
+        min-height: 45px;
     }
     
     .modal-content {
