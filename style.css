@@ -412,6 +412,12 @@ body {
   border-radius: var(--radius-lg);
 }
 
+.header h1 {
+  text-align: center;
+  margin: 0 auto;
+  display: block;
+}
+
 .header::before {
   content: '';
   position: absolute;
