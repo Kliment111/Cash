@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест - Финансовый трекер</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container" style="max-width: 600px; margin: 20px auto;">
+        <h1 style="text-align: center; margin-bottom: 30px;">🧪 Тест карточек</h1>
+        
+        <!-- Тестовая карточка доходов -->
+        <div class="flip-card-container" id="testFlipCard">
+            <div class="flip-card front" onclick="flipCard('test')">
+                <div class="card-header">
+                    <h3>Тестовая таблица</h3>
+                </div>
+                <div class="table-container">
+                    <table class="categories-table income">
+                        <thead>
+                            <tr>
+                                <th>Категория</th>
+                                <th>Сумма</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="category-row">
+                                <td class="category-name" data-category="salary">💰 Зарплата</td>
+                                <td class="category-amount" onclick="showEditOptions('income', 'salary', this)">1000 $</td>
+                            </tr>
+                            <tr class="category-row">
+                                <td class="category-name" data-category="freelance">💻 Фриланс</td>
+                                <td class="category-amount" onclick="showEditOptions('income', 'freelance', this)">500 $</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="flip-card back" onclick="flipCard('test')">
+                <div class="card-header">
+                    <h3>Тестовые кнопки</h3>
+                </div>
+                <div class="back-buttons">
+                    <button class="back-btn" onclick="showHistory('income')">
+                        <span class="icon">📜</span>
+                        <span class="text">История</span>
+                    </button>
+                    <button class="back-btn" onclick="showCategories('income')">
+                        <span class="icon">📂</span>
+                        <span class="text">Категории</span>
+                    </button>
+                    <button class="back-btn" onclick="showSettings('income')">
+                        <span class="icon">⚙️</span>
+                        <span class="text">Настройки</span>
+                    </button>
+                    <button class="back-btn" onclick="addIncomeFromBack()">
+                        <span class="icon">➕</span>
+                        <span class="text">Добавить</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="btn btn-primary" onclick="alert('Таблица видна!')">Проверить таблицу</button>
+        </div>
+    </div>
+    
+    <script src="main.js"></script>
+</body>
+</html>

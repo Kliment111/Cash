@@ -1,3 +1,901 @@
+// --- MOBILE HEIGHT ADJUSTMENT ---
+document.addEventListener('DOMContentLoaded', function() {
+    adjustMobileHeights();
+});
+
+window.addEventListener('resize', function() {
+    adjustMobileHeights();
+});
+
+window.addEventListener('orientationchange', function() {
+    setTimeout(() => {
+        adjustMobileHeights();
+    }, 100);
+});
+
+function adjustMobileHeights() {
+    const diaContainer = document.querySelector('.dia-container');
+    const flipCards = document.querySelectorAll('.flip-card-container');
+    
+    if (diaContainer && flipCards.length > 0) {
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        
+        // Only apply on mobile
+        if (viewportWidth <= 768) {
+            let containerHeight, cardHeight;
+            
+            if (viewportWidth <= 480) {
+                // Small phones
+                containerHeight = viewportHeight - 100;
+                cardHeight = Math.max(320, viewportHeight - 220);
+            } else {
+                // Tablets and large phones
+                containerHeight = viewportHeight - 120;
+                cardHeight = Math.max(380, viewportHeight - 240);
+            }
+            
+            // Apply heights
+            diaContainer.style.height = `${containerHeight}px`;
+            flipCards.forEach(card => {
+                card.style.height = `${cardHeight}px`;
+            });
+        } else {
+            // Reset to desktop defaults
+            diaContainer.style.height = '';
+            flipCards.forEach(card => {
+                card.style.height = '';
+            });
+        }
+    }
+}
+
+// --- RATE EDITING FUNCTIONALITY ---
+let currentEditRateType = '';
+let currentEditRateCategory = '';
+let currentEditRateElement = null;
+let currentEditRateValue = 0;
+
+// Show edit rate options modal
+function showEditRateOptions(type, category, element) {
+    currentEditRateType = type;
+    currentEditRateCategory = category;
+    currentEditRateElement = element;
+    
+    // Get current rate
+    const rateText = element.textContent;
+    currentEditRateValue = parseFloat(rateText.replace(/[^0-9.-]+/g, '')) || 0;
+    
+    // Get category name
+    const categoryName = element.closest('tr').querySelector('.category-name').textContent;
+    
+    // Update modal content
+    document.getElementById('editRateCategoryName').textContent = categoryName;
+    document.getElementById('editRateCurrentRate').textContent = rateText;
+    document.getElementById('editNewRate').value = '';
+    
+    // Show modal
+    document.getElementById('editRateModal').classList.add('active');
+    
+    // Focus on input
+    setTimeout(() => {
+        const input = document.getElementById('editNewRate');
+        input.focus();
+        
+        // Add Enter key handler
+        input.onkeypress = function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                applyRateEdit('replace');
+            }
+        };
+    }, 100);
+}
+
+// Apply rate edit option
+function applyRateEdit(option) {
+    const newRateInput = document.getElementById('editNewRate');
+    const newRate = parseFloat(newRateInput.value) || 0;
+    
+    if (newRate < 0 || newRate > 100) {
+        alert('Пожалуйста, введите корректную процентную ставку (от 0% до 100%)');
+        return;
+    }
+    
+    // Visual feedback
+    const selectedBtn = document.getElementById('replaceRateBtn');
+    if (selectedBtn) {
+        selectedBtn.innerHTML = '<span class="loading">⏳</span> Обработка...';
+        selectedBtn.disabled = true;
+    }
+    
+    // Simulate processing delay
+    setTimeout(() => {
+        // Update the display
+        updateCategoryRate(currentEditRateType, currentEditRateCategory, newRate);
+        
+        // Add transaction for rate change
+        addRateChangeTransaction(currentEditRateType, currentEditRateCategory, currentEditRateValue, newRate);
+        
+        // Show success feedback
+        if (selectedBtn) {
+            selectedBtn.innerHTML = '<span class="success">✅</span> Готово!';
+        }
+        
+        // Close modal after short delay
+        setTimeout(() => {
+            closeEditRateModal();
+        }, 500);
+    }, 300);
+}
+
+// Update category rate in table
+function updateCategoryRate(type, category, rate) {
+    const formattedRate = rate.toFixed(2) + '%';
+    
+    if (currentEditRateElement) {
+        currentEditRateElement.textContent = formattedRate;
+    }
+    
+    // Save data
+    saveCategoryRate(type, category, rate);
+}
+
+// Add rate change transaction
+function addRateChangeTransaction(type, category, oldRate, newRate) {
+    if (oldRate === newRate) return; // No change needed
+    
+    const transaction = {
+        type: type,
+        category: category,
+        oldRate: oldRate,
+        newRate: newRate,
+        rateChange: true,
+        date: new Date().toISOString().split('T')[0],
+        description: `Изменение процентной ставки ${getCategoryDisplayName(type, category)} с ${oldRate.toFixed(2)}% на ${newRate.toFixed(2)}%`
+    };
+    
+    // Add to transactions array
+    if (!window.transactions) window.transactions = [];
+    window.transactions.push(transaction);
+    
+    // Save to localStorage
+    localStorage.setItem('transactions', JSON.stringify(window.transactions));
+}
+
+// Close edit rate modal
+function closeEditRateModal() {
+    document.getElementById('editRateModal').classList.remove('active');
+    currentEditRateType = '';
+    currentEditRateCategory = '';
+    currentEditRateElement = null;
+    currentEditRateValue = 0;
+    
+    // Reset button
+    const replaceBtn = document.getElementById('replaceRateBtn');
+    if (replaceBtn) {
+        replaceBtn.innerHTML = '<span class="edit-option-title">Заменить ставку</span><span class="edit-option-desc">5% → 7.5% (установить новую ставку)</span>';
+        replaceBtn.disabled = false;
+    }
+}
+
+// Save category rate
+function saveCategoryRate(type, category, rate) {
+    const key = `${type}_${category}_rate`;
+    localStorage.setItem(key, rate.toString());
+}
+
+// Load category rate
+function loadCategoryRate(type, category) {
+    const key = `${type}_${category}_rate`;
+    const saved = localStorage.getItem(key);
+    return saved ? parseFloat(saved) : 0;
+}
+
+// Initialize category rates on load
+function initializeCategoryRates() {
+    const types = ['assets', 'liabilities'];
+    
+    types.forEach(type => {
+        const tableBody = document.getElementById(type + 'TableBody');
+        if (!tableBody) return;
+        
+        const rows = tableBody.querySelectorAll('.category-row');
+        rows.forEach(row => {
+            const category = row.dataset.category;
+            const rate = loadCategoryRate(type, category);
+            const rateCell = row.querySelector('.category-rate');
+            
+            if (rateCell && rate > 0) {
+                rateCell.textContent = rate.toFixed(2) + '%';
+            }
+        });
+    });
+}
+
+// Update initializeCategoryData to also initialize rates
+function initializeCategoryData() {
+    const types = ['income', 'expense', 'assets', 'liabilities'];
+    
+    types.forEach(type => {
+        const tableBody = document.getElementById(type + 'TableBody');
+        if (!tableBody) return;
+        
+        const rows = tableBody.querySelectorAll('.category-row');
+        rows.forEach(row => {
+            const category = row.dataset.category;
+            const amount = loadCategoryData(type, category);
+            const amountCell = row.querySelector('.category-amount');
+            
+            if (amountCell && amount > 0) {
+                const currency = getCurrency();
+                amountCell.textContent = amount.toFixed(2) + ' ' + currency;
+            }
+        });
+        
+        // Update totals
+        updateTotals(type);
+    });
+    
+    // Initialize rates for assets and liabilities
+    initializeCategoryRates();
+}
+
+// --- FLIP CARD FUNCTIONALITY ---
+let currentEditType = '';
+let currentEditCategory = '';
+let currentEditElement = null;
+let currentEditAmount = 0;
+
+// Flip card function
+function flipCard(type) {
+    const flipContainer = document.getElementById(type + 'FlipCard');
+    if (flipContainer) {
+        flipContainer.classList.toggle('flipped');
+    }
+}
+
+// Show edit options modal
+function showEditOptions(type, category, element) {
+    currentEditType = type;
+    currentEditCategory = category;
+    currentEditElement = element;
+    
+    // Get current amount
+    const amountText = element.textContent;
+    currentEditAmount = parseFloat(amountText.replace(/[^0-9.-]+/g, '')) || 0;
+    
+    // Get category name
+    const categoryName = element.closest('tr').querySelector('.category-name').textContent;
+    
+    // Update modal content
+    document.getElementById('editCategoryName').textContent = categoryName;
+    document.getElementById('editCurrentAmount').textContent = amountText;
+    document.getElementById('editNewAmount').value = '';
+    
+    // Update descriptions based on type
+    updateEditDescriptions(type);
+    
+    // Show modal
+    document.getElementById('editAmountModal').classList.add('active');
+    
+    // Focus on input
+    setTimeout(() => {
+        const input = document.getElementById('editNewAmount');
+        input.focus();
+        
+        // Add Enter key handler
+        input.onkeypress = function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                // Try to apply the first selected option or default to 'add'
+                const selectedBtn = document.querySelector('.edit-option-btn.selected');
+                if (selectedBtn) {
+                    selectedBtn.click();
+                } else {
+                    applyEditOption('add');
+                }
+            }
+        };
+        
+        // Add input change handler to update button states
+        input.oninput = function() {
+            updateEditButtonStates();
+        };
+    }, 100);
+}
+
+// Update edit button states based on input
+function updateEditButtonStates() {
+    const newAmountInput = document.getElementById('editNewAmount');
+    const newAmount = parseFloat(newAmountInput.value) || 0;
+    const buttons = document.querySelectorAll('.edit-option-btn');
+    
+    buttons.forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    
+    // Auto-select based on amount comparison
+    if (newAmount > 0) {
+        if (newAmount > currentEditAmount) {
+            // For larger amounts, prefer 'adjust' for income/expense, 'add' for assets/liabilities
+            const preferAdd = currentEditType === 'assets' || currentEditType === 'liabilities';
+            const targetBtn = preferAdd ? 
+                document.getElementById('addToCurrentBtn') : 
+                document.getElementById('adjustDifferenceBtn');
+            if (targetBtn) targetBtn.classList.add('selected');
+        } else if (newAmount < currentEditAmount) {
+            // For smaller amounts, prefer 'adjust'
+            document.getElementById('adjustDifferenceBtn')?.classList.add('selected');
+        } else {
+            // Same amount, prefer 'replace'
+            document.getElementById('replaceAmountBtn')?.classList.add('selected');
+        }
+    }
+}
+
+// Update edit descriptions based on type
+function updateEditDescriptions(type) {
+    const isAssetsLiabilities = type === 'assets' || type === 'liabilities';
+    
+    if (isAssetsLiabilities) {
+        document.getElementById('editAmountTitle').textContent = 'Редактирование актива/пассива';
+        document.getElementById('adjustTitle').textContent = 'Добавляем разницу';
+        document.getElementById('addDesc').textContent = '5000 + 6000 = 11000 (в доход/расход)';
+        document.getElementById('adjustDesc').textContent = '5000 → 11000 (добавляет 6000 в доход/расход)';
+        document.getElementById('replaceDesc').textContent = '5000 → 11000 (без добавления в доход/расход)';
+    } else {
+        document.getElementById('editAmountTitle').textContent = 'Редактирование суммы';
+        document.getElementById('adjustTitle').textContent = type === 'expense' ? 'Скорректировать в меньшую сторону' : 'Добавляем разницу';
+        document.getElementById('addDesc').textContent = '5000 + 6000 = 11000';
+        document.getElementById('adjustDesc').textContent = type === 'expense' ? '5000 → 4000 (уменьшает на 1000)' : '5000 → 11000 (добавляет 6000)';
+        document.getElementById('replaceDesc').textContent = '5000 → 11000';
+    }
+}
+
+// Apply edit option
+function applyEditOption(option) {
+    const newAmountInput = document.getElementById('editNewAmount');
+    const newAmount = parseFloat(newAmountInput.value) || 0;
+    
+    if (newAmount <= 0) {
+        alert('Пожалуйста, введите корректную сумму');
+        return;
+    }
+    
+    // Visual feedback - highlight selected button
+    const buttons = document.querySelectorAll('.edit-option-btn');
+    buttons.forEach(btn => btn.classList.remove('selected'));
+    document.getElementById(option + 'Btn')?.classList.add('selected');
+    
+    let finalAmount = 0;
+    let transactionAmount = 0;
+    
+    switch (option) {
+        case 'add':
+            finalAmount = currentEditAmount + newAmount;
+            transactionAmount = newAmount;
+            break;
+        case 'adjust':
+            if (newAmount > currentEditAmount) {
+                finalAmount = newAmount;
+                transactionAmount = newAmount - currentEditAmount;
+            } else {
+                finalAmount = newAmount;
+                transactionAmount = -(currentEditAmount - newAmount);
+            }
+            break;
+        case 'replace':
+            finalAmount = newAmount;
+            transactionAmount = 0; // No transaction for replace
+            break;
+    }
+    
+    // Show loading state
+    const selectedBtn = document.getElementById(option + 'Btn');
+    if (selectedBtn) {
+        selectedBtn.innerHTML = '<span class="loading">⏳</span> Обработка...';
+        selectedBtn.disabled = true;
+    }
+    
+    // Simulate processing delay for better UX
+    setTimeout(() => {
+        // Update the display
+        updateCategoryAmount(currentEditType, currentEditCategory, finalAmount);
+        
+        // Add transaction if needed
+        if (transactionAmount !== 0) {
+            addEditTransaction(currentEditType, currentEditCategory, transactionAmount, option);
+        }
+        
+        // Show success feedback
+        if (selectedBtn) {
+            selectedBtn.innerHTML = '<span class="success">✅</span> Готово!';
+        }
+        
+        // Close modal after short delay
+        setTimeout(() => {
+            closeEditAmountModal();
+        }, 500);
+    }, 300);
+}
+
+// Update category amount in table
+function updateCategoryAmount(type, category, amount) {
+    const currency = getCurrency();
+    const formattedAmount = amount.toFixed(2) + ' ' + currency;
+    
+    if (currentEditElement) {
+        currentEditElement.textContent = formattedAmount;
+    }
+    
+    // Update totals
+    updateTotals(type);
+    
+    // Save data
+    saveCategoryData(type, category, amount);
+}
+
+// Add transaction from edit
+function addEditTransaction(type, category, amount, option) {
+    const transaction = {
+        type: type,
+        category: category,
+        amount: Math.abs(amount),
+        date: new Date().toISOString().split('T')[0],
+        description: getTransactionDescription(type, category, option, amount),
+        editOption: option
+    };
+    
+    // Add to transactions array
+    if (!window.transactions) window.transactions = [];
+    window.transactions.push(transaction);
+    
+    // Save to localStorage
+    localStorage.setItem('transactions', JSON.stringify(window.transactions));
+}
+
+// Get transaction description
+function getTransactionDescription(type, category, option, amount) {
+    const categoryName = getCategoryDisplayName(type, category);
+    const isNegative = amount < 0;
+    const absAmount = Math.abs(amount).toFixed(2);
+    
+    if (type === 'assets' || type === 'liabilities') {
+        if (option === 'add') {
+            return `Пополнение ${categoryName} на ${absAmount}`;
+        } else if (option === 'adjust') {
+            return isNegative ? `Снятие с ${categoryName} ${absAmount}` : `Пополнение ${categoryName} на ${absAmount}`;
+        }
+    } else {
+        if (option === 'add') {
+            return `${type === 'income' ? 'Добавлен доход' : 'Добавлен расход'}: ${categoryName} - ${absAmount}`;
+        } else if (option === 'adjust') {
+            return `${isNegative ? 'Уменьшение' : 'Корректировка'} ${categoryName}: ${absAmount}`;
+        }
+    }
+    
+    return `Изменение ${categoryName}: ${absAmount}`;
+}
+
+// Get category display name
+function getCategoryDisplayName(type, category) {
+    const categoryNames = {
+        income: {
+            salary: 'Зарплата',
+            freelance: 'Фриланс',
+            investment: 'Инвестиции',
+            other: 'Другое'
+        },
+        expense: {
+            food: 'Продукты',
+            transport: 'Транспорт',
+            utilities: 'Коммунальные услуги',
+            entertainment: 'Развлечения',
+            health: 'Здоровье',
+            shopping: 'Покупки',
+            other: 'Другое'
+        },
+        assets: {
+            cash: 'Наличные',
+            bank: 'Банковский счет',
+            savings: 'Сбережения',
+            investments: 'Инвестиции'
+        },
+        liabilities: {
+            mortgage: 'Ипотека',
+            car_loan: 'Автокредит',
+            consumer_loan: 'Потребительский кредит',
+            credit_card: 'Кредитная карта'
+        }
+    };
+    
+    return categoryNames[type]?.[category] || category;
+}
+
+// Close edit amount modal
+function closeEditAmountModal() {
+    document.getElementById('editAmountModal').classList.remove('active');
+    currentEditType = '';
+    currentEditCategory = '';
+    currentEditElement = null;
+    currentEditAmount = 0;
+}
+
+// Save category data
+function saveCategoryData(type, category, amount) {
+    const key = `${type}_${category}_amount`;
+    localStorage.setItem(key, amount.toString());
+}
+
+// Load category data
+function loadCategoryData(type, category) {
+    const key = `${type}_${category}_amount`;
+    const saved = localStorage.getItem(key);
+    return saved ? parseFloat(saved) : 0;
+}
+
+// Update totals for a type
+function updateTotals(type) {
+    const tableBody = document.getElementById(type + 'TableBody');
+    if (!tableBody) return;
+    
+    let total = 0;
+    const rows = tableBody.querySelectorAll('.category-amount');
+    
+    rows.forEach(row => {
+        const amount = parseFloat(row.textContent.replace(/[^0-9.-]+/g, '')) || 0;
+        total += amount;
+    });
+    
+    const totalElement = document.getElementById('total' + type.charAt(0).toUpperCase() + type.slice(1) + 'Amount');
+    if (totalElement) {
+        const currency = getCurrency();
+        totalElement.textContent = total.toFixed(2) + ' ' + currency;
+    }
+}
+
+// Get current currency
+function getCurrency() {
+    return localStorage.getItem('currency') || '$';
+}
+
+// Back button functions
+function showHistory(type) {
+    const transactions = getTransactionsByType(type);
+    const modal = createHistoryModal(type, transactions);
+    document.body.appendChild(modal);
+    modal.classList.add('active');
+}
+
+function showCategories(type) {
+    const modal = createCategoriesModal(type);
+    document.body.appendChild(modal);
+    modal.classList.add('active');
+}
+
+function showSettings(type) {
+    const modal = createSettingsModal(type);
+    document.body.appendChild(modal);
+    modal.classList.add('active');
+}
+
+function addIncomeFromBack() {
+    flipCard('income');
+    showAddTransactionModal('income');
+}
+
+function addExpenseFromBack() {
+    flipCard('expense');
+    showAddTransactionModal('expense');
+}
+
+function addAssetFromBack() {
+    flipCard('assets');
+    showAddTransactionModal('assets');
+}
+
+function addLiabilityFromBack() {
+    flipCard('liabilities');
+    showAddTransactionModal('liabilities');
+}
+
+// Get transactions by type
+function getTransactionsByType(type) {
+    if (!window.transactions) window.transactions = [];
+    return window.transactions.filter(t => t.type === type);
+}
+
+// Create history modal
+function createHistoryModal(type, transactions) {
+    const modal = document.createElement('div');
+    modal.className = 'modal history-modal';
+    modal.innerHTML = `
+        <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📜 История ${getTypeDisplayName(type)}</h2>
+                <button class="modal-close" onclick="this.closest('.modal').remove()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="history-list">
+                    ${transactions.length > 0 ? transactions.map(t => `
+                        <div class="history-item">
+                            <div class="history-date">${t.date}</div>
+                            <div class="history-description">${t.description}</div>
+                            <div class="history-amount ${t.type}">${t.amount > 0 ? '+' : '-'}${t.amount.toFixed(2)} ${getCurrency()}</div>
+                        </div>
+                    `).join('') : '<p>История пуста</p>'}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Закрыть</button>
+            </div>
+        </div>
+    `;
+    return modal;
+}
+
+// Create categories modal
+function createCategoriesModal(type) {
+    const modal = document.createElement('div');
+    modal.className = 'modal categories-modal';
+    modal.innerHTML = `
+        <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📂 Управление категориями ${getTypeDisplayName(type)}</h2>
+                <button class="modal-close" onclick="this.closest('.modal').remove()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="categories-management">
+                    <div class="category-list" id="${type}CategoryList">
+                        <!-- Categories will be populated here -->
+                    </div>
+                    <div class="add-category-form">
+                        <input type="text" id="newCategoryName" placeholder="Название новой категории" class="input-field">
+                        <button class="btn btn-primary" onclick="addNewCategory('${type}')">Добавить категорию</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Закрыть</button>
+            </div>
+        </div>
+    `;
+    
+    // Populate categories after creation
+    setTimeout(() => populateCategoryList(type), 100);
+    return modal;
+}
+
+// Create settings modal
+function createSettingsModal(type) {
+    const modal = document.createElement('div');
+    modal.className = 'modal settings-modal';
+    modal.innerHTML = `
+        <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ Настройки ${getTypeDisplayName(type)}</h2>
+                <button class="modal-close" onclick="this.closest('.modal').remove()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-options">
+                    <div class="setting-item">
+                        <label>Валюта для ${getTypeDisplayName(type)}:</label>
+                        <select id="${type}Currency" class="input-field">
+                            <option value="$">Доллар ($)</option>
+                            <option value="₴">Гривна (₴)</option>
+                            <option value="€">Евро (€)</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label>Показывать в сводке:</label>
+                        <input type="checkbox" id="${type}ShowInSummary" checked>
+                    </div>
+                    <div class="setting-item">
+                        <label>Уведомления:</label>
+                        <input type="checkbox" id="${type}Notifications">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Отмена</button>
+                <button class="btn btn-primary" onclick="saveSettings('${type}')">Сохранить</button>
+            </div>
+        </div>
+    `;
+    return modal;
+}
+
+// Show add transaction modal
+function showAddTransactionModal(type) {
+    const modal = document.createElement('div');
+    modal.className = 'modal add-transaction-modal';
+    
+    const isAssetLiability = type === 'assets' || type === 'liabilities';
+    
+    modal.innerHTML = `
+        <div class="modal-backdrop" onclick="this.closest('.modal').remove()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>➕ Добавить ${getTypeDisplayName(type).slice(0, -1)}</h2>
+                <button class="modal-close" onclick="this.closest('.modal').remove()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Категория:</label>
+                    <select id="addTransactionCategory" class="input-field">
+                        ${getCategoriesForType(type).map(cat => `<option value="${cat.value}">${cat.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Сумма (${getCurrency()}):</label>
+                    <input type="number" id="addTransactionAmount" class="input-field" placeholder="0.00" step="0.01" min="0">
+                </div>
+                ${isAssetLiability ? `
+                <div class="form-group">
+                    <label>Процентная ставка (%):</label>
+                    <input type="number" id="addTransactionRate" class="input-field" placeholder="0.00" step="0.01" min="0">
+                </div>
+                ` : ''}
+                <div class="form-group">
+                    <label>Описание:</label>
+                    <input type="text" id="addTransactionDescription" class="input-field" placeholder="Описание">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Отмена</button>
+                <button class="btn btn-primary" onclick="addNewTransaction('${type}')">Добавить</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.classList.add('active');
+}
+
+// Helper functions
+function getTypeDisplayName(type) {
+    const names = {
+        income: 'доходов',
+        expense: 'расходов',
+        assets: 'активов',
+        liabilities: 'пассивов'
+    };
+    return names[type] || type;
+}
+
+function getCategoriesForType(type) {
+    const categories = {
+        income: [
+            { value: 'salary', name: 'Зарплата' },
+            { value: 'freelance', name: 'Фриланс' },
+            { value: 'investment', name: 'Инвестиции' },
+            { value: 'other', name: 'Другое' }
+        ],
+        expense: [
+            { value: 'food', name: 'Продукты' },
+            { value: 'transport', name: 'Транспорт' },
+            { value: 'utilities', name: 'Коммунальные услуги' },
+            { value: 'entertainment', name: 'Развлечения' },
+            { value: 'health', name: 'Здоровье' },
+            { value: 'shopping', name: 'Покупки' },
+            { value: 'other', name: 'Другое' }
+        ],
+        assets: [
+            { value: 'cash', name: 'Наличные' },
+            { value: 'bank', name: 'Банковский счет' },
+            { value: 'savings', name: 'Сбережения' },
+            { value: 'investments', name: 'Инвестиции' }
+        ],
+        liabilities: [
+            { value: 'mortgage', name: 'Ипотека' },
+            { value: 'car_loan', name: 'Автокредит' },
+            { value: 'consumer_loan', name: 'Потребительский кредит' },
+            { value: 'credit_card', name: 'Кредитная карта' }
+        ]
+    };
+    return categories[type] || [];
+}
+
+function populateCategoryList(type) {
+    const listElement = document.getElementById(type + 'CategoryList');
+    if (!listElement) return;
+    
+    const categories = getCategoriesForType(type);
+    listElement.innerHTML = categories.map(cat => `
+        <div class="category-item">
+            <span>${cat.name}</span>
+            <button class="btn btn-danger btn-sm" onclick="removeCategory('${type}', '${cat.value}')">Удалить</button>
+        </div>
+    `).join('');
+}
+
+function addNewCategory(type) {
+    const input = document.getElementById('newCategoryName');
+    const name = input.value.trim();
+    
+    if (!name) {
+        alert('Введите название категории');
+        return;
+    }
+    
+    // Add category logic here
+    alert(`Категория "${name}" добавлена для ${type}`);
+    input.value = '';
+    populateCategoryList(type);
+}
+
+function removeCategory(type, category) {
+    if (confirm(`Удалить категорию?`)) {
+        alert(`Категория ${category} удалена`);
+        populateCategoryList(type);
+    }
+}
+
+function saveSettings(type) {
+    alert(`Настройки для ${type} сохранены`);
+    document.querySelector('.modal').remove();
+}
+
+function addNewTransaction(type) {
+    const category = document.getElementById('addTransactionCategory').value;
+    const amount = parseFloat(document.getElementById('addTransactionAmount').value) || 0;
+    const description = document.getElementById('addTransactionDescription').value || '';
+    
+    if (amount <= 0) {
+        alert('Введите корректную сумму');
+        return;
+    }
+    
+    // Add transaction logic
+    const transaction = {
+        type: type,
+        category: category,
+        amount: amount,
+        description: description,
+        date: new Date().toISOString().split('T')[0]
+    };
+    
+    if (!window.transactions) window.transactions = [];
+    window.transactions.push(transaction);
+    localStorage.setItem('transactions', JSON.stringify(window.transactions));
+    
+    // Update display
+    updateCategoryAmount(type, category, 
+        (loadCategoryData(type, category) || 0) + amount);
+    
+    alert('Транзакция добавлена');
+    document.querySelector('.modal').remove();
+}
+
+// Initialize category data on load
+function initializeCategoryData() {
+    const types = ['income', 'expense', 'assets', 'liabilities'];
+    
+    types.forEach(type => {
+        const tableBody = document.getElementById(type + 'TableBody');
+        if (!tableBody) return;
+        
+        const rows = tableBody.querySelectorAll('.category-row');
+        rows.forEach(row => {
+            const category = row.dataset.category;
+            const amount = loadCategoryData(type, category);
+            const amountCell = row.querySelector('.category-amount');
+            
+            if (amountCell && amount > 0) {
+                const currency = getCurrency();
+                amountCell.textContent = amount.toFixed(2) + ' ' + currency;
+            }
+        });
+        
+        // Update totals
+        updateTotals(type);
+    });
+}
+
 // --- DІЯ STYLE NAVIGATION ---
 let currentTab = 'income'; // income, expense, assets, liabilities
 let touchStartX = 0;
@@ -7,30 +905,49 @@ let refreshing = false;
 let isSwiping = false;
 let swipeStartTab = '';
 
-// Simple Tab Switching
+// Tab switching functions
 function switchToTab(tabName) {
-    // Hide all panels
-    document.querySelectorAll('.dia-panel').forEach(panel => {
-        panel.classList.remove('active');
-    });
-    
-    // Remove active class from all tabs
-    document.querySelectorAll('.dia-tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // Show selected panel
-    const selectedPanel = document.querySelector(`[data-panel="${tabName}"]`);
-    if (selectedPanel) {
-        selectedPanel.classList.add('active');
-    }
-    
-    // Add active class to clicked tab
-    const clickedTab = event.target;
-    clickedTab.classList.add('active');
-    
-    // Update current tab
     currentTab = tabName;
+    updateDiaPanel();
+    updateIndicators();
+    
+    // Add swipe animation effect
+    addSwipeAnimation();
+    
+    // Scroll to top of dia container
+    const diaContainer = document.querySelector('.dia-container');
+    if (diaContainer) {
+        diaContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function updateDiaPanel() {
+    const panels = document.querySelectorAll('.dia-panel');
+    panels.forEach(panel => {
+        if (panel.dataset.panel === currentTab) {
+            panel.classList.add('active');
+            // Add animation class
+            panel.style.animation = 'slideInFromRight 0.3s ease-out';
+        } else {
+            panel.classList.remove('active');
+        }
+    });
+}
+
+function updateDiaTabs() {
+    // Function removed since tabs are no longer visible
+    // Keeping for backward compatibility
+}
+
+function updateIndicators() {
+    const indicators = document.querySelectorAll('.indicator');
+    indicators.forEach(indicator => {
+        if (indicator.dataset.indicator === currentTab) {
+            indicator.classList.add('active');
+        } else {
+            indicator.classList.remove('active');
+        }
+    });
 }
 
 // Touch events for swipe navigation
@@ -302,6 +1219,10 @@ function initializeApp() {
     // Load data and initialize
     loadData();
     updateAll();
+    
+    // Initialize category data
+    initializeCategoryData();
+    
     initializeCustomSuggestions();
     
     // Setup auto-save

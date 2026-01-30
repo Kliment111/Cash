@@ -28,80 +28,314 @@
         </div>
 
         <div class="main-grid">
-            <!-- ПРОСТАЯ НАВИГАЦИЯ -->
+            <!-- НАВИГАЦИЯ ПО ПРИНЦИПУ ДІЯ -->
             <div class="dia-container">
-                <!-- Простые вкладки -->
-                <div class="dia-tabs">
-                    <button class="dia-tab active" onclick="switchToTab('income')">💰 Доходы</button>
-                    <button class="dia-tab" onclick="switchToTab('expense')">💸 Расходы</button>
-                    <button class="dia-tab" onclick="switchToTab('assets')">💳 Активы</button>
-                    <button class="dia-tab" onclick="switchToTab('liabilities')">📊 Пассивы</button>
-                </div>
-                
-                <div class="dia-content">
+                <div class="dia-content" id="diaContent">
                     <!-- ДОХОДЫ -->
                     <div class="dia-panel active" data-panel="income">
                         <div class="panel-header">
-                            <h2>💰 Доходы</h2>
+                            <h2 data-i18n="income">💰 Доходы</h2>
                             <div class="total-amount" id="totalIncomeAmount">0 $</div>
                         </div>
-                        <div class="dia-cards-container" id="incomeList">
-                            <div class="dia-empty-state">
-                                <div class="dia-empty-icon">💰</div>
-                                <div class="dia-empty-text">Нет доходов</div>
-                                <div class="dia-empty-subtext">Добавьте свой первый доход</div>
+                        <div class="flip-card-container" id="incomeFlipCard">
+                            <!-- Лицевая сторона - таблица -->
+                            <div class="flip-card front" onclick="flipCard('income')">
+                                <div class="card-header">
+                                    <h3>Категории доходов</h3>
+                                </div>
+                                <div class="table-container">
+                                    <table class="categories-table income" id="incomeTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Категория</th>
+                                                <th>Сумма</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="incomeTableBody">
+                                            <!-- Стандартные категории -->
+                                            <tr class="category-row" data-category="salary">
+                                                <td class="category-name" data-category="salary">Зарплата</td>
+                                                <td class="category-amount" onclick="showEditOptions('income', 'salary', this)">0 $</td>
+                                            </tr>
+                                            <tr class="category-row" data-category="freelance">
+                                                <td class="category-name" data-category="freelance">Фриланс</td>
+                                                <td class="category-amount" onclick="showEditOptions('income', 'freelance', this)">0 $</td>
+                                            </tr>
+                                            <tr class="category-row" data-category="investment">
+                                                <td class="category-name" data-category="investment">Инвестиции</td>
+                                                <td class="category-amount" onclick="showEditOptions('income', 'investment', this)">0 $</td>
+                                            </tr>
+                                            <tr class="category-row" data-category="other">
+                                                <td class="category-name" data-category="other">Другое</td>
+                                                <td class="category-amount" onclick="showEditOptions('income', 'other', this)">0 $</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <!-- Задняя сторона - управление -->
+                            <div class="flip-card back" onclick="flipCard('income')">
+                                <div class="card-header">
+                                    <h3>Управление доходами</h3>
+                                </div>
+                                <div class="back-buttons">
+                                    <button class="back-btn" onclick="showHistory('income')">
+                                        <span class="icon">📜</span>
+                                        <span class="text">История</span>
+                                    </button>
+                                    <button class="back-btn" onclick="showCategories('income')">
+                                        <span class="icon">📂</span>
+                                        <span class="text">Категории</span>
+                                    </button>
+                                    <button class="back-btn" onclick="showSettings('income')">
+                                        <span class="icon">⚙️</span>
+                                        <span class="text">Настройки</span>
+                                    </button>
+                                    <button class="back-btn" onclick="addIncomeFromBack()">
+                                        <span class="icon">➕</span>
+                                        <span class="text">Добавить доход</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <button class="btn btn-income" onclick="openIncomeModal()">➕ Добавить доход</button>
                     </div>
                     
                     <!-- РАСХОДЫ -->
                     <div class="dia-panel" data-panel="expense">
                         <div class="panel-header">
-                            <h2>💸 Расходы</h2>
+                            <h2 data-i18n="expense">💸 Расходы</h2>
                             <div class="total-amount" id="totalExpenseAmount">0 $</div>
                         </div>
-                        <div class="dia-cards-container" id="expenseList">
-                            <div class="dia-empty-state">
-                                <div class="dia-empty-icon">💸</div>
-                                <div class="dia-empty-text">Нет расходов</div>
-                                <div class="dia-empty-subtext">Добавьте свой первый расход</div>
+                        <div class="flip-card-container" id="expenseFlipCard">
+                            <!-- Лицевая сторона - таблица -->
+                            <div class="flip-card front" onclick="flipCard('expense')">
+                                <div class="card-header">
+                                    <h3>Категории расходов</h3>
+                                </div>
+                                <div class="table-container">
+                                    <table class="categories-table expense" id="expenseTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Категория</th>
+                                                <th>Сумма</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="expenseTableBody">
+                                            <!-- Стандартные категории -->
+                                            <tr class="category-row" data-category="food">
+                                                <td class="category-name" data-category="food">Продукты</td>
+                                                <td class="category-amount" onclick="showEditOptions('expense', 'food', this)">0 $</td>
+                                            </tr>
+                                            <tr class="category-row" data-category="transport">
+                                                <td class="category-name" data-category="transport">Транспорт</td>
+                                                <td class="category-amount" onclick="showEditOptions('expense', 'transport', this)">0 $</td>
+                                            </tr>
+                                            <tr class="category-row" data-category="utilities">
+                                                <td class="category-name" data-category="utilities">Коммунальные услуги</td>
+                                                <td class="category-amount" onclick="showEditOptions('expense', 'utilities', this)">0 $</td>
+                                            </tr>
+                                            <tr class="category-row" data-category="entertainment">
+                                                <td class="category-name" data-category="entertainment">Развлечения</td>
+                                                <td class="category-amount" onclick="showEditOptions('expense', 'entertainment', this)">0 $</td>
+                                            </tr>
+                                            <tr class="category-row" data-category="health">
+                                                <td class="category-name" data-category="health">Здоровье</td>
+                                                <td class="category-amount" onclick="showEditOptions('expense', 'health', this)">0 $</td>
+                                            </tr>
+                                            <tr class="category-row" data-category="shopping">
+                                                <td class="category-name" data-category="shopping">Покупки</td>
+                                                <td class="category-amount" onclick="showEditOptions('expense', 'shopping', this)">0 $</td>
+                                            </tr>
+                                            <tr class="category-row" data-category="other">
+                                                <td class="category-name" data-category="other">Другое</td>
+                                                <td class="category-amount" onclick="showEditOptions('expense', 'other', this)">0 $</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <!-- Задняя сторона - управление -->
+                            <div class="flip-card back" onclick="flipCard('expense')">
+                                <div class="card-header">
+                                    <h3>Управление расходами</h3>
+                                </div>
+                                <div class="back-buttons">
+                                    <button class="back-btn" onclick="showHistory('expense')">
+                                        <span class="icon">📜</span>
+                                        <span class="text">История</span>
+                                    </button>
+                                    <button class="back-btn" onclick="showCategories('expense')">
+                                        <span class="icon">📂</span>
+                                        <span class="text">Категории</span>
+                                    </button>
+                                    <button class="back-btn" onclick="showSettings('expense')">
+                                        <span class="icon">⚙️</span>
+                                        <span class="text">Настройки</span>
+                                    </button>
+                                    <button class="back-btn" onclick="addExpenseFromBack()">
+                                        <span class="icon">➕</span>
+                                        <span class="text">Добавить расход</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <button class="btn btn-expense" onclick="openExpenseModal()">➕ Добавить расход</button>
                     </div>
                     
                     <!-- АКТИВЫ -->
                     <div class="dia-panel" data-panel="assets">
                         <div class="panel-header">
-                            <h2>💳 Активы</h2>
+                            <h2 data-i18n="assetsTitle">💳 Активы</h2>
                             <div class="total-amount" id="totalAssetsAmount">0 $</div>
                         </div>
-                        <div class="dia-cards-container" id="assetsList">
-                            <div class="dia-empty-state">
-                                <div class="dia-empty-icon">💳</div>
-                                <div class="dia-empty-text">Нет активов</div>
-                                <div class="dia-empty-subtext">Добавьте свой первый актив</div>
+                        <div class="flip-card-container" id="assetsFlipCard">
+                            <!-- Лицевая сторона - таблица -->
+                            <div class="flip-card front" onclick="flipCard('assets')">
+                                <div class="card-header">
+                                    <h3>Активы</h3>
+                                </div>
+                                <div class="table-container">
+                                    <table class="categories-table assets" id="assetsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Категория</th>
+                                                <th>Сумма</th>
+                                                <th>Ставка %</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="assetsTableBody">
+                                            <!-- Стандартные категории -->
+                                            <tr class="category-row" data-category="cash">
+                                                <td class="category-name" data-category="cash">Наличные</td>
+                                                <td class="category-amount" onclick="showEditOptions('assets', 'cash', this)">0 $</td>
+                                                <td class="category-rate" onclick="showEditRateOptions('assets', 'cash', this)">0%</td>
+                                            </tr>
+                                            <tr class="category-row" data-category="bank">
+                                                <td class="category-name" data-category="bank">Банковский счет</td>
+                                                <td class="category-amount" onclick="showEditOptions('assets', 'bank', this)">0 $</td>
+                                                <td class="category-rate" onclick="showEditRateOptions('assets', 'bank', this)">0%</td>
+                                            </tr>
+                                            <tr class="category-row" data-category="savings">
+                                                <td class="category-name" data-category="savings">Сбережения</td>
+                                                <td class="category-amount" onclick="showEditOptions('assets', 'savings', this)">0 $</td>
+                                                <td class="category-rate" onclick="showEditRateOptions('assets', 'savings', this)">0%</td>
+                                            </tr>
+                                            <tr class="category-row" data-category="investments">
+                                                <td class="category-name" data-category="investments">Инвестиции</td>
+                                                <td class="category-amount" onclick="showEditOptions('assets', 'investments', this)">0 $</td>
+                                                <td class="category-rate" onclick="showEditRateOptions('assets', 'investments', this)">0%</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <!-- Задняя сторона - управление -->
+                            <div class="flip-card back" onclick="flipCard('assets')">
+                                <div class="card-header">
+                                    <h3>Управление активами</h3>
+                                </div>
+                                <div class="back-buttons">
+                                    <button class="back-btn" onclick="showHistory('assets')">
+                                        <span class="icon">📜</span>
+                                        <span class="text">История</span>
+                                    </button>
+                                    <button class="back-btn" onclick="showCategories('assets')">
+                                        <span class="icon">📂</span>
+                                        <span class="text">Категории</span>
+                                    </button>
+                                    <button class="back-btn" onclick="showSettings('assets')">
+                                        <span class="icon">⚙️</span>
+                                        <span class="text">Настройки</span>
+                                    </button>
+                                    <button class="back-btn" onclick="addAssetFromBack()">
+                                        <span class="icon">➕</span>
+                                        <span class="text">Добавить актив</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <button class="btn btn-success" onclick="openAssetModal()">➕ Добавить актив</button>
                     </div>
                     
                     <!-- ПАССИВЫ -->
                     <div class="dia-panel" data-panel="liabilities">
                         <div class="panel-header">
-                            <h2>📊 Пассивы</h2>
+                            <h2 data-i18n="liabilitiesTitle">📊 Пассивы</h2>
                             <div class="total-amount" id="totalLiabilitiesAmount">0 $</div>
                         </div>
-                        <div class="dia-cards-container" id="liabilitiesList">
-                            <div class="dia-empty-state">
-                                <div class="dia-empty-icon">📊</div>
-                                <div class="dia-empty-text">Нет пассивов</div>
-                                <div class="dia-empty-subtext">Добавьте свой первый пассив</div>
+                        <div class="flip-card-container" id="liabilitiesFlipCard">
+                            <!-- Лицевая сторона - таблица -->
+                            <div class="flip-card front" onclick="flipCard('liabilities')">
+                                <div class="card-header">
+                                    <h3>Пассивы</h3>
+                                </div>
+                                <div class="table-container">
+                                    <table class="categories-table liabilities" id="liabilitiesTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Категория</th>
+                                                <th>Сумма</th>
+                                                <th>Ставка %</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="liabilitiesTableBody">
+                                            <!-- Стандартные категории -->
+                                            <tr class="category-row" data-category="mortgage">
+                                                <td class="category-name" data-category="mortgage">Ипотека</td>
+                                                <td class="category-amount" onclick="showEditOptions('liabilities', 'mortgage', this)">0 $</td>
+                                                <td class="category-rate" onclick="showEditRateOptions('liabilities', 'mortgage', this)">0%</td>
+                                            </tr>
+                                            <tr class="category-row" data-category="car_loan">
+                                                <td class="category-name" data-category="car_loan">Автокредит</td>
+                                                <td class="category-amount" onclick="showEditOptions('liabilities', 'car_loan', this)">0 $</td>
+                                                <td class="category-rate" onclick="showEditRateOptions('liabilities', 'car_loan', this)">0%</td>
+                                            </tr>
+                                            <tr class="category-row" data-category="consumer_loan">
+                                                <td class="category-name" data-category="consumer_loan">Потребительский кредит</td>
+                                                <td class="category-amount" onclick="showEditOptions('liabilities', 'consumer_loan', this)">0 $</td>
+                                                <td class="category-rate" onclick="showEditRateOptions('liabilities', 'consumer_loan', this)">0%</td>
+                                            </tr>
+                                            <tr class="category-row" data-category="credit_card">
+                                                <td class="category-name" data-category="credit_card">Кредитная карта</td>
+                                                <td class="category-amount" onclick="showEditOptions('liabilities', 'credit_card', this)">0 $</td>
+                                                <td class="category-rate" onclick="showEditRateOptions('liabilities', 'credit_card', this)">0%</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <!-- Задняя сторона - управление -->
+                            <div class="flip-card back" onclick="flipCard('liabilities')">
+                                <div class="card-header">
+                                    <h3>Управление пассивами</h3>
+                                </div>
+                                <div class="back-buttons">
+                                    <button class="back-btn" onclick="showHistory('liabilities')">
+                                        <span class="icon">📜</span>
+                                        <span class="text">История</span>
+                                    </button>
+                                    <button class="back-btn" onclick="showCategories('liabilities')">
+                                        <span class="icon">📂</span>
+                                        <span class="text">Категории</span>
+                                    </button>
+                                    <button class="back-btn" onclick="showSettings('liabilities')">
+                                        <span class="icon">⚙️</span>
+                                        <span class="text">Настройки</span>
+                                    </button>
+                                    <button class="back-btn" onclick="addLiabilityFromBack()">
+                                        <span class="icon">➕</span>
+                                        <span class="text">Добавить пассив</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <button class="btn btn-danger" onclick="openLiabilityModal()">➕ Добавить пассив</button>
                     </div>
+                </div>
+                
+                <!-- Индикаторы страниц -->
+                <div class="dia-indicators">
+                    <div class="indicator active" data-indicator="income"></div>
+                    <div class="indicator" data-indicator="expense"></div>
+                    <div class="indicator" data-indicator="assets"></div>
+                    <div class="indicator" data-indicator="liabilities"></div>
                 </div>
             </div>
             
@@ -289,6 +523,88 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeLiabilityModal()">Отмена</button>
                 <button class="btn btn-info" onclick="addLiabilityTransaction()">Добавить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ СУММЫ -->
+    <div id="editAmountModal" class="modal">
+        <div class="modal-backdrop" onclick="closeEditAmountModal()"></div>
+        <div class="modal-content edit-amount-modal">
+            <div class="modal-header">
+                <h2 id="editAmountTitle">Редактирование суммы</h2>
+                <button class="modal-close" onclick="closeEditAmountModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="edit-info">
+                    <div class="info-row">
+                        <span class="info-label">Категория:</span>
+                        <span id="editCategoryName" class="info-value">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Текущая сумма:</span>
+                        <span id="editCurrentAmount" class="info-value">-</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editNewAmount">Новая сумма ($):</label>
+                    <input type="number" id="editNewAmount" class="input-field" placeholder="0.00" step="0.01">
+                </div>
+                <div class="edit-options">
+                    <button class="edit-option-btn" id="addToCurrentBtn" onclick="applyEditOption('add')">
+                        <span class="edit-option-title">Добавить к текущей</span>
+                        <span class="edit-option-desc" id="addDesc">5000 + 6000 = 11000</span>
+                    </button>
+                    <button class="edit-option-btn" id="adjustDifferenceBtn" onclick="applyEditOption('adjust')">
+                        <span class="edit-option-title" id="adjustTitle">Добавляем разницу</span>
+                        <span class="edit-option-desc" id="adjustDesc">5000 → 11000 (добавляет 6000)</span>
+                    </button>
+                    <button class="edit-option-btn" id="replaceAmountBtn" onclick="applyEditOption('replace')">
+                        <span class="edit-option-title">Заменить сумму</span>
+                        <span class="edit-option-desc" id="replaceDesc">5000 → 11000</span>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEditAmountModal()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ПРОЦЕНТНОЙ СТАВКИ -->
+    <div id="editRateModal" class="modal">
+        <div class="modal-backdrop" onclick="closeEditRateModal()"></div>
+        <div class="modal-content edit-rate-modal">
+            <div class="modal-header">
+                <h2 id="editRateTitle">Редактирование процентной ставки</h2>
+                <button class="modal-close" onclick="closeEditRateModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="edit-info">
+                    <div class="info-row">
+                        <span class="info-label">Категория:</span>
+                        <span class="info-value" id="editRateCategoryName">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Текущая ставка:</span>
+                        <span class="info-value" id="editRateCurrentRate">0%</span>
+                    </div>
+                </div>
+                
+                <div class="edit-form">
+                    <label for="editNewRate">Новая процентная ставка (%):</label>
+                    <input type="number" id="editNewRate" class="input-field" placeholder="0.00" step="0.01" min="0" max="100">
+                </div>
+                
+                <div class="edit-options">
+                    <button class="edit-option-btn" id="replaceRateBtn" onclick="applyRateEdit('replace')">
+                        <span class="edit-option-title">Заменить ставку</span>
+                        <span class="edit-option-desc">5% → 7.5% (установить новую ставку)</span>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEditRateModal()">Отмена</button>
             </div>
         </div>
     </div>
@@ -514,23 +830,26 @@
 
     <!-- КРАТКОЕ ИЗЛОЖЕНИЕ - Compact bottom bar -->
     <div class="summary-bar">
-        <div class="summary-bar-container">
-            <div class="summary-item">
-                <div class="summary-label">Доходы</div>
-                <div class="summary-amount income-amount" id="summaryIncome">0 $</div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-label">Расходы</div>
-                <div class="summary-amount expense-amount" id="summaryExpense">0 $</div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-label">Баланс</div>
-                <div class="summary-amount balance-amount" id="summaryBalance">0 $</div>
+        <div class="summary-bar-container" style="justify-content: center; text-align: center;">
+            <div class="summary-info" style="justify-content: center;">
+                <div class="summary-item compact">
+                    <span class="summary-label" data-i18n="income">Доходы</span>
+                    <span class="summary-amount income-amount" id="totalIncome">0 $</span>
+                </div>
+                <div class="summary-item compact">
+                    <span class="summary-label" data-i18n="expense">Расходы</span>
+                    <span class="summary-amount expense-amount" id="totalExpense">0 $</span>
+                </div>
+                <div class="summary-item compact">
+                    <span class="summary-label" data-i18n="balance">Баланс</span>
+                    <span class="summary-amount balance-amount" id="totalBalance">0 $</span>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="simple.js"></script>
+    <script src="main.js"></script>
+    <script src="google-auth.js"></script>
     
     <!-- Календарь (поверх всего контента) -->
     <div class="calendar-dropdown" id="calendarDropdown">

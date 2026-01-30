@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📱 Проверка мобильной адаптации</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .debug-info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            font-family: monospace;
+        }
+        
+        .debug-info div {
+            margin: 2px 0;
+        }
+        
+        @media (min-width: 769px) {
+            .debug-info {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-info" id="debugInfo">
+        <div id="viewportSize"></div>
+        <div id="containerHeight"></div>
+        <div id="cardHeight"></div>
+    </div>
+    
+    <div class="container">
+        <div class="dia-container">
+            <div class="dia-content">
+                <!-- Тестовая карточка -->
+                <div class="dia-panel active">
+                    <div class="panel-header">
+                        <h2>💰 Тест адаптации</h2>
+                        <div class="total-amount">1,234.56 $</div>
+                    </div>
+                    
+                    <div class="flip-card-container">
+                        <div class="flip-card front" onclick="flipCard('test')">
+                            <div class="card-header">
+                                <h3>Мобильная таблица</h3>
+                            </div>
+                            <div class="table-container">
+                                <table class="categories-table income">
+                                    <thead>
+                                        <tr>
+                                            <th>Категория</th>
+                                            <th>Сумма</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="category-row">
+                                            <td class="category-name" data-category="salary">💰 Зарплата</td>
+                                            <td class="category-amount" onclick="alert('Редактирование суммы')">1,000 $</td>
+                                        </tr>
+                                        <tr class="category-row">
+                                            <td class="category-name" data-category="freelance">💻 Фриланс</td>
+                                            <td class="category-amount" onclick="alert('Редактирование суммы')">234.56 $</td>
+                                        </tr>
+                                        <tr class="category-row">
+                                            <td class="category-name" data-category="other">📝 Другое</td>
+                                            <td class="category-amount" onclick="alert('Редактирование суммы')">0 $</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="flip-card back" onclick="flipCard('test')">
+                            <div class="card-header">
+                                <h3>Мобильные кнопки</h3>
+                            </div>
+                            <div class="back-buttons">
+                                <button class="back-btn" onclick="alert('История работает!')">
+                                    <span class="icon">📜</span>
+                                    <span class="text">История</span>
+                                </button>
+                                <button class="back-btn" onclick="alert('Категории работают!')">
+                                    <span class="icon">📂</span>
+                                    <span class="text">Категории</span>
+                                </button>
+                                <button class="back-btn" onclick="alert('Настройки работают!')">
+                                    <span class="icon">⚙️</span>
+                                    <span class="text">Настройки</span>
+                                </button>
+                                <button class="back-btn" onclick="alert('Добавление работает!')">
+                                    <span class="icon">➕</span>
+                                    <span class="text">Добавить</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="main.js"></script>
+    <script>
+        // Обновление отладочной информации
+        function updateDebugInfo() {
+            const viewportSize = document.getElementById('viewportSize');
+            const containerHeight = document.getElementById('containerHeight');
+            const cardHeight = document.getElementById('cardHeight');
+            
+            const diaContainer = document.querySelector('.dia-container');
+            const flipCard = document.querySelector('.flip-card-container');
+            
+            viewportSize.textContent = `${window.innerWidth}x${window.innerHeight}`;
+            
+            if (diaContainer) {
+                containerHeight.textContent = `Container: ${diaContainer.offsetHeight}px`;
+            }
+            
+            if (flipCard) {
+                cardHeight.textContent = `Card: ${flipCard.offsetHeight}px`;
+            }
+        }
+        
+        // Обновление при загрузке и изменении размера
+        updateDebugInfo();
+        window.addEventListener('resize', updateDebugInfo);
+        window.addEventListener('orientationchange', function() {
+            setTimeout(updateDebugInfo, 200);
+        });
+        
+        // Простая функция переворота
+        function flipCard(type) {
+            const flipContainer = document.querySelector('.flip-card-container');
+            if (flipContainer) {
+                flipContainer.classList.toggle('flipped');
+            }
+        }
+    </script>
+</body>
+</html>
