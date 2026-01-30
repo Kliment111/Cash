@@ -25,10 +25,20 @@ function showEditRateOptions(type, category, element) {
     // Show modal
     document.getElementById('editRateModal').classList.add('active');
     
-    // Focus on input
+    // Focus on input with improved mobile handling
     setTimeout(() => {
         const input = document.getElementById('editNewRate');
         input.focus();
+        
+        // Ensure mobile keyboard shows
+        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+            input.setAttribute('readonly', 'readonly');
+            setTimeout(() => {
+                input.removeAttribute('readonly');
+                input.focus();
+                input.click();
+            }, 100);
+        }
         
         // Add Enter key handler
         input.onkeypress = function(e) {
@@ -37,7 +47,19 @@ function showEditRateOptions(type, category, element) {
                 applyRateEdit('replace');
             }
         };
-    }, 100);
+        
+        // Add touch handlers for mobile
+        input.addEventListener('touchstart', function(e) {
+            e.stopPropagation();
+            this.focus();
+        }, { passive: true });
+        
+        input.addEventListener('touchend', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            setTimeout(() => this.focus(), 50);
+        });
+    }, 200);
 }
 
 // Apply rate edit option
@@ -227,10 +249,20 @@ function showEditOptions(type, category, element) {
     // Show modal
     document.getElementById('editAmountModal').classList.add('active');
     
-    // Focus on input
+    // Focus on input with improved mobile handling
     setTimeout(() => {
         const input = document.getElementById('editNewAmount');
         input.focus();
+        
+        // Ensure mobile keyboard shows
+        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+            input.setAttribute('readonly', 'readonly');
+            setTimeout(() => {
+                input.removeAttribute('readonly');
+                input.focus();
+                input.click();
+            }, 100);
+        }
         
         // Add Enter key handler
         input.onkeypress = function(e) {
@@ -250,7 +282,67 @@ function showEditOptions(type, category, element) {
         input.oninput = function() {
             updateEditButtonStates();
         };
-    }, 100);
+        
+        // Add touch handlers for mobile
+        input.addEventListener('touchstart', function(e) {
+            e.stopPropagation();
+            this.focus();
+        }, { passive: true });
+        
+        input.addEventListener('touchend', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            setTimeout(() => this.focus(), 50);
+        });
+    }, 200);
+}
+
+// Initialize touch handlers for table cells
+function initializeTableTouchHandlers() {
+    const amountCells = document.querySelectorAll('.category-amount, .category-rate');
+    
+    amountCells.forEach(cell => {
+        // Remove existing listeners to avoid duplicates
+        cell.removeEventListener('touchstart', handleCellTouchStart);
+        cell.removeEventListener('touchend', handleCellTouchEnd);
+        cell.removeEventListener('click', handleCellClick);
+        
+        // Add new listeners
+        cell.addEventListener('touchstart', handleCellTouchStart, { passive: true });
+        cell.addEventListener('touchend', handleCellTouchEnd, { passive: false });
+        cell.addEventListener('click', handleCellClick, { passive: false });
+    });
+}
+
+// Handle touch start on cells
+function handleCellTouchStart(e) {
+    e.preventDefault();
+    this.style.transform = 'scale(0.95)';
+    this.style.transition = 'transform 0.1s ease';
+}
+
+// Handle touch end on cells
+function handleCellTouchEnd(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.style.transform = 'scale(1)';
+    
+    // Get the onclick attribute and execute it
+    const onclickAttr = this.getAttribute('onclick');
+    if (onclickAttr) {
+        // Extract the function call and execute it
+        const match = onclickAttr.match(/(showEditOptions|showEditRateOptions)\([^)]+\)/);
+        if (match) {
+            setTimeout(() => {
+                eval(match[0]);
+            }, 50);
+        }
+    }
+}
+
+// Handle click on cells (fallback for desktop)
+function handleCellClick(e) {
+    e.stopPropagation();
 }
 
 // Update edit button states based on input
@@ -1468,6 +1560,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Initialize DIA navigation
         initializeDiaNavigation();
     }
+
+    // Initialize touch handlers for table cells
+    initializeTableTouchHandlers();
 
     // Header language selector
     const headerLanguageSelect = document.getElementById('headerLanguageSelect');
