@@ -380,16 +380,16 @@ function updateEditDescriptions(type) {
     
     if (isAssetsLiabilities) {
         document.getElementById('editAmountTitle').textContent = 'Редактирование актива/пассива';
-        document.getElementById('adjustTitle').textContent = 'Добавляем разницу';
-        document.getElementById('addDesc').textContent = '5000 + 6000 = 11000 (в доход/расход)';
-        document.getElementById('adjustDesc').textContent = '5000 → 11000 (добавляет 6000 в доход/расход)';
-        document.getElementById('replaceDesc').textContent = '5000 → 11000 (без добавления в доход/расход)';
+        document.getElementById('adjustTitle').textContent = 'Скорректировать сумму';
+        document.getElementById('addDesc').textContent = '6000 + 300 = 9000';
+        document.getElementById('adjustDesc').textContent = 'Было 6000, стало 9000 (добавит 300 в историю)';
+        document.getElementById('replaceDesc').textContent = 'Было 6000, стало 9000 (без истории)';
     } else {
         document.getElementById('editAmountTitle').textContent = 'Редактирование суммы';
-        document.getElementById('adjustTitle').textContent = type === 'expense' ? 'Скорректировать в меньшую сторону' : 'Добавляем разницу';
-        document.getElementById('addDesc').textContent = '5000 + 6000 = 11000';
-        document.getElementById('adjustDesc').textContent = type === 'expense' ? '5000 → 4000 (уменьшает на 1000)' : '5000 → 11000 (добавляет 6000)';
-        document.getElementById('replaceDesc').textContent = '5000 → 11000';
+        document.getElementById('adjustTitle').textContent = 'Скорректировать сумму';
+        document.getElementById('addDesc').textContent = '6000 + 300 = 9000';
+        document.getElementById('adjustDesc').textContent = 'Было 6000, стало 9000 (добавит 300 в историю)';
+        document.getElementById('replaceDesc').textContent = 'Было 6000, стало 9000 (без истории)';
     }
 }
 
@@ -417,12 +417,17 @@ function applyEditOption(option) {
             transactionAmount = newAmount;
             break;
         case 'adjust':
-            if (newAmount > currentEditAmount) {
-                finalAmount = newAmount;
-                transactionAmount = newAmount - currentEditAmount;
+            finalAmount = newAmount;
+            const difference = newAmount - currentEditAmount;
+            if (difference > 0) {
+                // Увеличение - добавляем как доход/пополнение
+                transactionAmount = difference;
+            } else if (difference < 0) {
+                // Уменьшение - добавляем как расход/снятие
+                transactionAmount = difference; // отрицательное значение для расхода
             } else {
-                finalAmount = newAmount;
-                transactionAmount = -(currentEditAmount - newAmount);
+                // Нет изменений
+                transactionAmount = 0;
             }
             break;
         case 'replace':
@@ -478,13 +483,22 @@ function updateCategoryAmount(type, category, amount) {
 
 // Add transaction from edit
 function addEditTransaction(type, category, amount, option) {
+    const isNegative = amount < 0;
+    const absAmount = Math.abs(amount);
+    
+    // Для расходов создаем транзакцию с отрицательным типом
+    const transactionType = isNegative ? 
+        (type === 'income' ? 'expense' : 'withdrawal') : 
+        type;
+    
     const transaction = {
-        type: type,
+        type: transactionType,
         category: category,
-        amount: Math.abs(amount),
+        amount: absAmount,
         date: new Date().toISOString().split('T')[0],
         description: getTransactionDescription(type, category, option, amount),
-        editOption: option
+        editOption: option,
+        originalType: type // Сохраняем оригинальный тип для истории
     };
     
     // Add to transactions array
@@ -493,6 +507,9 @@ function addEditTransaction(type, category, amount, option) {
     
     // Save to localStorage
     localStorage.setItem('transactions', JSON.stringify(window.transactions));
+    
+    // Update totals
+    updateTotals(type);
 }
 
 // Get transaction description
@@ -500,18 +517,28 @@ function getTransactionDescription(type, category, option, amount) {
     const categoryName = getCategoryDisplayName(type, category);
     const isNegative = amount < 0;
     const absAmount = Math.abs(amount).toFixed(2);
+    const oldAmount = currentEditAmount.toFixed(2);
+    const newAmount = (currentEditAmount + amount).toFixed(2);
     
     if (type === 'assets' || type === 'liabilities') {
         if (option === 'add') {
             return `Пополнение ${categoryName} на ${absAmount}`;
         } else if (option === 'adjust') {
-            return isNegative ? `Снятие с ${categoryName} ${absAmount}` : `Пополнение ${categoryName} на ${absAmount}`;
+            if (isNegative) {
+                return `Снятие с ${categoryName} ${absAmount} (было ${oldAmount}, стало ${newAmount})`;
+            } else {
+                return `Пополнение ${categoryName} на ${absAmount} (было ${oldAmount}, стало ${newAmount})`;
+            }
         }
     } else {
         if (option === 'add') {
             return `${type === 'income' ? 'Добавлен доход' : 'Добавлен расход'}: ${categoryName} - ${absAmount}`;
         } else if (option === 'adjust') {
-            return `${isNegative ? 'Уменьшение' : 'Корректировка'} ${categoryName}: ${absAmount}`;
+            if (isNegative) {
+                return `Уменьшение ${categoryName} на ${absAmount} (было ${oldAmount}, стало ${newAmount})`;
+            } else {
+                return `Корректировка ${categoryName}: +${absAmount} (было ${oldAmount}, стало ${newAmount})`;
+            }
         }
     }
     
